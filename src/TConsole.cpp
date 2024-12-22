@@ -411,6 +411,12 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
     mpBufferSearchBox->setToolTip(utils::richText(tr("Search buffer.")));
     connect(mpBufferSearchBox, &QLineEdit::returnPressed, this, &TConsole::slot_searchBufferUp);
 
+    // Add F3/Shift+F3 shortcuts for search navigation
+    auto searchNextShortcut = new QShortcut(QKeySequence(Qt::Key_F3), this);
+    auto searchPrevShortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F3), this);
+    connect(searchNextShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferDown);
+    connect(searchPrevShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferUp);
+
     mpAction_searchOptions = new QAction(tr("Search Options"), this);
     mpAction_searchOptions->setObjectName(qsl("mpAction_searchOptions"));
 
@@ -545,6 +551,9 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
     if (mType & MainConsole) {
         mpCommandLine->adjustHeight();
     }
+
+    // Create Announcer for screen reader support
+    new Announcer(this);
 
     connect(mudlet::self(), &mudlet::signal_adjustAccessibleNames, this, &TConsole::slot_adjustAccessibleNames);
     slot_adjustAccessibleNames();
@@ -1836,6 +1845,12 @@ void TConsole::slot_searchBufferUp()
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
                 found = true;
+                // Position cursor at start of match
+                moveCursor(searchX, searchY);
+                // Announce the line containing the match to screen readers
+                if (auto* announcer = findChild<Announcer*>()) {
+                    announcer->announce(buffer.lineBuffer[searchY]);
+                }
             }
         } while (searchX > -1);
 
@@ -1871,6 +1886,12 @@ void TConsole::slot_searchBufferDown()
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
                 found = true;
+                // Position cursor at start of match
+                moveCursor(searchX, searchY);
+                // Announce the line containing the match to screen readers
+                if (auto* announcer = findChild<Announcer*>()) {
+                    announcer->announce(buffer.lineBuffer[searchY]);
+                }
             }
         } while (searchX > -1);
 
