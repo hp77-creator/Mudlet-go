@@ -1845,19 +1845,28 @@ void TConsole::slot_searchBufferUp()
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
                 found = true;
-                // Position cursor at start of match
-                moveCursor(searchX, searchY);
-                // Announce the line containing the match to screen readers
-                if (auto* announcer = findChild<Announcer*>()) {
-                    announcer->announce(buffer.lineBuffer[searchY]);
-                }
             }
         } while (searchX > -1);
 
         if (found) {
+            mpHost->setCaretEnabled(true);
+            mUpperPane->initializeCaret();
+            moveCursor(searchX, searchY);
+            mUpperPane->setCaretPosition(searchY, searchX);
+            mUpperPane->updateCaret();
+            mUpperPane->setFocusPolicy(Qt::StrongFocus);
+            mUpperPane->setFocusProxy(nullptr);
+            mUpperPane->setFocus();
+            
+            // Scroll to show the match
             scrollUp(buffer.mCursorY - searchY - 3);
             mUpperPane->forceUpdate();
             mCurrentSearchResult = searchY;
+            
+            // Announce match to screen readers
+            if (auto* announcer = findChild<Announcer*>()) {
+                announcer->announce(buffer.lineBuffer[searchY]);
+            }
             return;
         }
     }
@@ -1886,19 +1895,28 @@ void TConsole::slot_searchBufferDown()
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
                 found = true;
-                // Position cursor at start of match
-                moveCursor(searchX, searchY);
-                // Announce the line containing the match to screen readers
-                if (auto* announcer = findChild<Announcer*>()) {
-                    announcer->announce(buffer.lineBuffer[searchY]);
-                }
             }
         } while (searchX > -1);
 
         if (found) {
+            mpHost->setCaretEnabled(true);
+            mUpperPane->initializeCaret();
+            moveCursor(searchX, searchY);
+            mUpperPane->setCaretPosition(searchY, searchX);
+            mUpperPane->updateCaret();
+            mUpperPane->setFocusPolicy(Qt::StrongFocus);
+            mUpperPane->setFocusProxy(nullptr);
+            mUpperPane->setFocus();
+            
+            // Scroll to show the match
             scrollUp(buffer.mCursorY - searchY - 3);
             mUpperPane->forceUpdate();
             mCurrentSearchResult = searchY;
+            
+            // Announce match to screen readers
+            if (auto* announcer = findChild<Announcer*>()) {
+                announcer->announce(buffer.lineBuffer[searchY]);
+            }
             return;
         }
     }
