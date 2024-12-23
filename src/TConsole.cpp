@@ -552,8 +552,6 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
         mpCommandLine->adjustHeight();
     }
 
-    // Create Announcer for screen reader support
-    new Announcer(this);
 
     connect(mudlet::self(), &mudlet::signal_adjustAccessibleNames, this, &TConsole::slot_adjustAccessibleNames);
     slot_adjustAccessibleNames();
@@ -1817,6 +1815,18 @@ void TConsole::slot_stopAllItems(bool b)
     }
 }
 
+void TConsole::focusOnSearchResultAndAnnounce(int searchX, int searchY) {
+    mpHost->setCaretEnabled(true);
+    mUpperPane->initializeCaret();
+    moveCursor(searchX, searchY);
+    mUpperPane->setCaretPosition(searchY, searchX);
+    mUpperPane->updateCaret();
+    mUpperPane->setFocusPolicy(Qt::StrongFocus);
+    mUpperPane->setFocusProxy(nullptr);
+    mUpperPane->setFocus();
+    mudlet::self()->announce(buffer.lineBuffer[searchY]);
+}
+
 void TConsole::slot_searchBufferUp()
 {
     // The search term entry box is one widget that does not pass a mouse press
@@ -1844,29 +1854,17 @@ void TConsole::slot_searchBufferUp()
             searchX = buffer.lineBuffer[searchY].indexOf(mSearchQuery, searchX + 1, ((mSearchOptions & SearchOptionCaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive));
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
+                focusOnSearchResultAndAnnounce(searchX, searchY);
                 found = true;
             }
         } while (searchX > -1);
 
         if (found) {
-            mpHost->setCaretEnabled(true);
-            mUpperPane->initializeCaret();
-            moveCursor(searchX, searchY);
-            mUpperPane->setCaretPosition(searchY, searchX);
-            mUpperPane->updateCaret();
-            mUpperPane->setFocusPolicy(Qt::StrongFocus);
-            mUpperPane->setFocusProxy(nullptr);
-            mUpperPane->setFocus();
             
             // Scroll to show the match
             scrollUp(buffer.mCursorY - searchY - 3);
             mUpperPane->forceUpdate();
             mCurrentSearchResult = searchY;
-            
-            // Announce match to screen readers
-            if (auto* announcer = findChild<Announcer*>()) {
-                announcer->announce(buffer.lineBuffer[searchY]);
-            }
             return;
         }
     }
@@ -1894,29 +1892,17 @@ void TConsole::slot_searchBufferDown()
             searchX = buffer.lineBuffer[searchY].indexOf(mSearchQuery, searchX + 1, ((mSearchOptions & SearchOptionCaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive));
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
+                focusOnSearchResultAndAnnounce(searchX, searchY);
                 found = true;
             }
         } while (searchX > -1);
 
         if (found) {
-            mpHost->setCaretEnabled(true);
-            mUpperPane->initializeCaret();
-            moveCursor(searchX, searchY);
-            mUpperPane->setCaretPosition(searchY, searchX);
-            mUpperPane->updateCaret();
-            mUpperPane->setFocusPolicy(Qt::StrongFocus);
-            mUpperPane->setFocusProxy(nullptr);
-            mUpperPane->setFocus();
             
             // Scroll to show the match
             scrollUp(buffer.mCursorY - searchY - 3);
             mUpperPane->forceUpdate();
             mCurrentSearchResult = searchY;
-            
-            // Announce match to screen readers
-            if (auto* announcer = findChild<Announcer*>()) {
-                announcer->announce(buffer.lineBuffer[searchY]);
-            }
             return;
         }
     }

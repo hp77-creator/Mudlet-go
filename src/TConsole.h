@@ -328,6 +328,7 @@ protected:
 private slots:
     void slot_adjustAccessibleNames();
     void slot_clearSearchResults();
+    void focusOnSearchResultAndAnnounce(int searchX, int searchY);
 
 private:
     void createSearchOptionIcon();
