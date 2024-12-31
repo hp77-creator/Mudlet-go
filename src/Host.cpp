@@ -243,6 +243,7 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
 , mpAuth(new GMCPAuthenticator(this))
 , mpNotePad(nullptr)
 , mPrintCommand(true)
+, mF3SearchEnabled(false)
 , mIsRemoteEchoingActive(false)
 , mIsCurrentLogFileInHtmlFormat(false)
 , mIsNextLogFileInHtmlFormat(false)
@@ -428,6 +429,9 @@ Host::Host(int port, const QString& hostname, const QString& login, const QStrin
     auto settings = mudlet::self()->getQSettings();
     const auto interval = settings->value("autosaveIntervalMinutes", 2).toInt();
     startMapAutosave(interval);
+    if(mpConsole) {
+        mpConsole->setF3SearchEnabled(mF3SearchEnabled);
+    }
 }
 
 Host::~Host()

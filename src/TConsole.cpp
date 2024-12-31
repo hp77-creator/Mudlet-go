@@ -411,11 +411,9 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
     mpBufferSearchBox->setToolTip(utils::richText(tr("Search buffer.")));
     connect(mpBufferSearchBox, &QLineEdit::returnPressed, this, &TConsole::slot_searchBufferUp);
 
-    // Add F3/Shift+F3 shortcuts for search navigation
-    auto searchNextShortcut = new QShortcut(QKeySequence(Qt::Key_F3), this);
-    auto searchPrevShortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F3), this);
-    connect(searchNextShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferDown);
-    connect(searchPrevShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferUp);
+    // Create F3/Shift+F3 shortcuts for search navigation
+    searchNextShortcut = new QShortcut(QKeySequence(Qt::Key_F3), this);
+    searchPrevShortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F3), this);
 
     mpAction_searchOptions = new QAction(tr("Search Options"), this);
     mpAction_searchOptions->setObjectName(qsl("mpAction_searchOptions"));
@@ -558,7 +556,10 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
     // Need to delay doing this because it uses elements that may not have
     // been constructed yet:
     if (mType == MainConsole) {
-        QTimer::singleShot(0, this, [this]() { setProxyForFocus(mpCommandLine); });
+        QTimer::singleShot(0, this, [this]() { 
+            setProxyForFocus(mpCommandLine);
+            setF3SearchEnabled(mpHost->getF3SearchEnabled());
+        });
     }
 }
 
@@ -2360,6 +2361,21 @@ void TConsole::slot_toggleSearchCaseSensitivity(const bool state)
         mSearchOptions = (mSearchOptions & ~(SearchOptionCaseSensitive)) | (state ? SearchOptionCaseSensitive : SearchOptionNone);
         createSearchOptionIcon();
         mpHost->mBufferSearchOptions = mSearchOptions;
+    }
+}
+
+void TConsole::setF3SearchEnabled(const bool enabled)
+{
+    if (!searchNextShortcut || !searchPrevShortcut) {
+        return;
+    }
+
+    if (enabled) {
+        connect(searchNextShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferDown);
+        connect(searchPrevShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferUp);
+    } else {
+        disconnect(searchNextShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferDown);
+        disconnect(searchPrevShortcut, &QShortcut::activated, this, &TConsole::slot_searchBufferUp);
     }
 }
 
