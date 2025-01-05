@@ -1830,6 +1830,7 @@ void TConsole::focusOnSearchResultAndAnnounce(int searchX, int searchY) {
 
 void TConsole::slot_searchBufferUp()
 {
+    qDebug() << "Search buffer up called with text:" << mpBufferSearchBox->text();
     // The search term entry box is one widget that does not pass a mouse press
     // event up to the main TConsole and thus does not cause the focus to shift
     // to the profile's tab when in multi-view mode - so add a call to make that
@@ -1855,7 +1856,7 @@ void TConsole::slot_searchBufferUp()
             searchX = buffer.lineBuffer[searchY].indexOf(mSearchQuery, searchX + 1, ((mSearchOptions & SearchOptionCaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive));
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
-                focusOnSearchResultAndAnnounce(searchX, searchY);
+                if (mpHost->getF3SearchEnabled()) focusOnSearchResultAndAnnounce(searchX, searchY);
                 found = true;
             }
         } while (searchX > -1);
@@ -1893,7 +1894,7 @@ void TConsole::slot_searchBufferDown()
             searchX = buffer.lineBuffer[searchY].indexOf(mSearchQuery, searchX + 1, ((mSearchOptions & SearchOptionCaseSensitive) ? Qt::CaseSensitive : Qt::CaseInsensitive));
             if (searchX > -1) {
                 buffer.applyAttribute(QPoint(searchX, searchY), QPoint(searchX + mSearchQuery.size(), searchY), TChar::Found, true);
-                focusOnSearchResultAndAnnounce(searchX, searchY);
+                if (mpHost->getF3SearchEnabled()) focusOnSearchResultAndAnnounce(searchX, searchY);
                 found = true;
             }
         } while (searchX > -1);
