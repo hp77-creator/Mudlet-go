@@ -344,7 +344,7 @@ void dlgMapper::resetAreaComboBoxToPlayerRoomArea()
         return;
     }
 
-    TRoom* pR = mpMap->mpRoomDB->getRoom(mpMap->mRoomIdHash.value(mpMap->mProfileName));
+    auto pR = mpMap->mpRoomDB->getRoom(mpMap->mRoomIdHash.value(mpMap->mProfileName));
     if (pR) {
         const int playerRoomArea = pR->getArea();
         TArea* pA = mpMap->mpRoomDB->getArea(playerRoomArea);

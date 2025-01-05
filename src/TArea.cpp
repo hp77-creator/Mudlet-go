@@ -48,7 +48,7 @@ static const QColor defaultLabelBackground(QColor(0, 0, 0));
 static const int kPixmapDataLineSize = 64;
 
 
-TArea::TArea(TMap* pMap, TRoomDB* pRDB)
+TArea::TArea(TMap* pMap, std::shared_ptr<TRoomDB> pRDB)
 : mpRoomDB(pRDB)
 , mpMap(pMap)
 , mLast2DMapZoom(T2DMap::csmDefaultXYZoom)
@@ -77,8 +77,8 @@ int TArea::getAreaID()
 QMap<int, QMap<int, QMultiMap<int, int>>> TArea::koordinatenSystem()
 {
     QMap<int, QMap<int, QMultiMap<int, int>>> kS;
-    QList<TRoom*> const roomList = mpRoomDB->getRoomPtrList();
-    for (auto room : roomList) {
+    QList<std::shared_ptr<TRoom>> const roomList = mpRoomDB->getRoomPtrList();
+    for (const auto& room : roomList) {
         const int id = room->getId();
         const int x = room->x();
         const int y = room->y();
@@ -102,7 +102,7 @@ QList<int> TArea::getRoomsByPosition(int x, int y, int z)
     QSetIterator<int> itAreaRoom(rooms);
     while (itAreaRoom.hasNext()) {
         const int roomId = itAreaRoom.next();
-        TRoom* pR = mpRoomDB->getRoom(roomId);
+        auto pR = mpRoomDB->getRoom(roomId);
         if (pR) {
             if (pR->x() == x && pR->y() == y && pR->z() == z) {
                 dL.push_back(roomId);
@@ -157,7 +157,7 @@ void TArea::determineAreaExitsOfRoom(int id)
         return;
     }
 
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (!pR) {
         return;
     }
@@ -229,7 +229,7 @@ void TArea::determineAreaExitsOfRoom(int id)
     QMapIterator<QString, int> it(pR->getSpecialExits());
     while (it.hasNext()) {
         it.next();
-        TRoom* pO = mpRoomDB->getRoom(it.value());
+        auto pO = mpRoomDB->getRoom(it.value());
         if (pO) {
             if (pO->getArea() != getAreaID()) {
                 QPair<int, int> const p = QPair<int, int>(pO->getId(), DIR_OTHER);
@@ -245,7 +245,7 @@ void TArea::determineAreaExits()
     QSetIterator<int> itRoom(rooms);
     while (itRoom.hasNext()) {
         const int id = itRoom.next();
-        TRoom* pR = mpRoomDB->getRoom(id);
+        auto pR = mpRoomDB->getRoom(id);
         if (!pR) {
             continue;
         }
@@ -313,7 +313,7 @@ void TArea::determineAreaExits()
         QMapIterator<QString, int> itSpecialExit(pR->getSpecialExits());
         while (itSpecialExit.hasNext()) {
             itSpecialExit.next();
-            TRoom* pO = mpRoomDB->getRoom(itSpecialExit.value());
+            auto pO = mpRoomDB->getRoom(itSpecialExit.value());
 
             if (pO) {
                 if (pO->getArea() != getAreaID()) {
@@ -327,7 +327,7 @@ void TArea::determineAreaExits()
 
 void TArea::fast_calcSpan(int id)
 {
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (!pR) {
         return;
     }
@@ -357,7 +357,7 @@ void TArea::fast_calcSpan(int id)
 
 void TArea::addRoom(int id)
 {
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (pR) {
         if (!rooms.contains(id)) {
             rooms.insert(id);
@@ -382,7 +382,7 @@ void TArea::calcSpan()
     QSetIterator<int> itRoom(rooms);
     while (itRoom.hasNext()) {
         const int id = itRoom.next();
-        TRoom* pR = mpRoomDB->getRoom(id);
+        auto pR = mpRoomDB->getRoom(id);
         if (!pR) {
             continue;
         }
@@ -483,7 +483,7 @@ void TArea::removeRoom(int room, bool deferAreaRecalculations)
     if (rooms.contains(room) && !deferAreaRecalculations) {
         // just a check, if the area DOESN'T have the room then it is not wise
         // to behave as if it did
-        TRoom* pR = mpRoomDB->getRoom(room);
+        auto pR = mpRoomDB->getRoom(room);
         if (pR) {
             // Now see if the room is on an extreme - if it the only room on a
             // particular z-coordinate it will be on all four
@@ -553,7 +553,7 @@ const QMultiMap<int, QPair<QString, int>> TArea::getAreaExitRoomData() const
     QSetIterator<int> itRoomWithOtherAreaSpecialExit = roomsWithOtherAreaSpecialExits;
     while (itRoomWithOtherAreaSpecialExit.hasNext()) {
         const int fromRoomId = itRoomWithOtherAreaSpecialExit.next();
-        TRoom* pFromRoom = mpRoomDB->getRoom(fromRoomId);
+        auto pFromRoom = mpRoomDB->getRoom(fromRoomId);
         if (pFromRoom) {
             QMapIterator<QString, int> itSpecialExit(pFromRoom->getSpecialExits());
             while (itSpecialExit.hasNext()) {
@@ -561,7 +561,7 @@ const QMultiMap<int, QPair<QString, int>> TArea::getAreaExitRoomData() const
                 QPair<QString, int> exitData;
                 exitData.first = itSpecialExit.key();
                 exitData.second = itSpecialExit.value();
-                TRoom* pToRoom = mpRoomDB->getRoom(exitData.second);
+                auto pToRoom = mpRoomDB->getRoom(exitData.second);
                 if (pToRoom && mpRoomDB->getArea(pToRoom->getArea()) != this) {
                     // Note that pToRoom->getArea() is misnamed, should be getAreaId() !
                     if (!exitData.first.isEmpty()) {
@@ -645,11 +645,11 @@ std::pair<int, QString> TArea::readJsonArea(const QJsonArray& array, const int a
     readJsonUserData(areaObj.value(QLatin1String("userData")).toObject());
     int roomCount = 0;
     for (int roomIndex = 0, total = areaObj.value(QLatin1String("rooms")).toArray().count(); roomIndex < total; ++roomIndex) {
-        TRoom* pR = new TRoom(mpRoomDB);
+        auto pR = std::make_shared<TRoom>(mpRoomDB->shared_from_this());
         const int roomId = pR->readJsonRoom(areaObj.value(QLatin1String("rooms")).toArray(), roomIndex, id);
         rooms.insert(roomId);
         // This also sets the room id for the TRoom:
-        mpRoomDB->addRoom(roomId, pR, true);
+        mpRoomDB->addRoom(roomId, std::move(pR), true);
         if (++roomCount % 10 == 0) {
             if (mpMap->incrementJsonProgressDialog(false, true, 10)) {
                 // Cancel has been hit - so give up straight away:

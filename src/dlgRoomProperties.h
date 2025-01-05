@@ -42,7 +42,7 @@ public:
         QHash<QString, int>& pSymbols,
         QHash<int, int>& pWeights,
         QHash<bool, int> lockStatus,
-        QSet<TRoom*>& pRooms);
+        QSet<std::shared_ptr<TRoom>>& pRooms);
     void accept() override;
 
 signals:
@@ -53,7 +53,7 @@ signals:
         bool changeSymbolColor, QColor newSymbolColor,
         bool changeWeight, int newWeight,
         bool changeLockStatus, bool newLockStatus,
-        QSet<TRoom*> mpRooms);
+        QSet<std::shared_ptr<TRoom>> mpRooms);
 
 private:
     QColor backgroundBasedColor(QColor);
@@ -69,7 +69,7 @@ private:
     void initLockInstructions();
 
     Host* mpHost = nullptr;
-    QSet<TRoom*> mpRooms;
+    QSet<std::shared_ptr<TRoom>> mpRooms;
     QHash<QString, int> mpSymbols;
     QHash<int, int> mpWeights;
     QColor selectedSymbolColor;

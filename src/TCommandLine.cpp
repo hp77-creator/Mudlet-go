@@ -44,9 +44,11 @@ TCommandLine::TCommandLine(Host* pHost, const QString& name, CommandLineType typ
 , mCommandLineName(name)
 , mpHost(pHost)
 , mType(type)
-, mpKeyUnit(pHost->getKeyUnit())
 , mpConsole(pConsole)
 {
+    if (pHost) {
+        initializeKeyUnit();
+    }
     setObjectName(qsl("commandLine_%1_%2").arg(mpHost->getName(), name));
 
     setAutoFillBackground(true);
@@ -90,6 +92,15 @@ TCommandLine::TCommandLine(Host* pHost, const QString& name, CommandLineType typ
     connect(pHost, &Host::signal_saveCommandLinesHistory, this, &TCommandLine::slot_saveHistory);
 }
 
+void TCommandLine::initializeKeyUnit()
+{
+    if (!mpHost || mIsInitialized) {
+        return;
+    }
+    mpKeyUnit = mpHost->getKeyUnit();
+    mIsInitialized = true;
+}
+
 void TCommandLine::processNormalKey(QEvent* event)
 {
     QPlainTextEdit::event(event);
@@ -107,6 +118,18 @@ void TCommandLine::processNormalKey(QEvent* event)
 
 bool TCommandLine::keybindingMatched(QKeyEvent* keyEvent)
 {
+    if (!mpHost) {
+        return false;
+    }
+
+    if (!mIsInitialized) {
+        initializeKeyUnit();
+    }
+
+    if (!mpKeyUnit) {
+        return false;
+    }
+
     if (mpKeyUnit->processDataStream(static_cast<Qt::Key>(keyEvent->key()), static_cast<Qt::KeyboardModifiers>(keyEvent->modifiers()))) {
         keyEvent->accept();
         return true;

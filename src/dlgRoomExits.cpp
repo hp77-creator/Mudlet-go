@@ -120,7 +120,7 @@ QWidget* RoomIdLineEditDelegate::createEditor(QWidget* parent, const QStyleOptio
                 // just a plain number (no need to clear the real placeholder text)
                 text.clear();
             }
-            TRoom* exitToRoom = mpHost->mpMap->mpRoomDB->getRoom(text.toInt());
+            auto exitToRoom = mpHost->mpMap->mpRoomDB->getRoom(text.toInt());
             if (exitToRoom) {
                 // Valid exit roomID in place:
                 const int exitAreaID = exitToRoom->getArea();
@@ -198,7 +198,7 @@ void RoomIdLineEditDelegate::slot_specialRoomExitIdEdited(const QString& text) c
     }
     // The following code is a variation of that of
     // dlgRoomExits::setIconAndToolTipsOnSpecialExit(...) :
-    TRoom* pExitToRoom = mpHost->mpMap->mpRoomDB->getRoom(text.toInt());
+    auto pExitToRoom = mpHost->mpMap->mpRoomDB->getRoom(text.toInt());
     QString roomIdToolTipText;
     if (pExitToRoom) {
         // A valid exit roomID number:
@@ -950,7 +950,7 @@ void dlgRoomExits::setIconAndToolTipsOnSpecialExit(QTreeWidgetItem* pSpecialExit
         return;
     }
 
-    TRoom* pExitToRoom = mpHost->mpMap->mpRoomDB->getRoom(pSpecialExit->text(ExitsTreeWidget::colIndex_exitRoomId).toInt());
+    auto pExitToRoom = mpHost->mpMap->mpRoomDB->getRoom(pSpecialExit->text(ExitsTreeWidget::colIndex_exitRoomId).toInt());
     if (pExitToRoom) {
         // A valid exit roomID number:
         const int exitAreaID = pExitToRoom->getArea();
@@ -1095,7 +1095,7 @@ QAction* dlgRoomExits::getActionOnExit(QLineEdit* pExitLineEdit) const
 
 void dlgRoomExits::normalExitEdited(const QString& roomExitIdText, QLineEdit* pExit, QCheckBox* pNoRoute, QCheckBox* pStub, QSpinBox* pWeight, QRadioButton* pDoorType_none, QRadioButton* pDoorType_open, QRadioButton* pDoorType_closed, QRadioButton* pDoorType_locked, const QString& invalidExitToolTipText, const QString& noExitToolTipText)
 {
-    TRoom* exitToRoom = mpHost->mpMap->mpRoomDB->getRoom(roomExitIdText.toInt());
+    auto exitToRoom = mpHost->mpMap->mpRoomDB->getRoom(roomExitIdText.toInt());
     if (exitToRoom) {
         const int exitAreaID = exitToRoom->getArea();
         const bool outOfAreaExit = (exitAreaID && exitAreaID != mAreaID);
@@ -1432,7 +1432,7 @@ void dlgRoomExits::initExit(int direction,
         qWarning() << "dlgRoomExits::initExit(...) WARNING - in room id(" << mRoomID << ") unexpected doors[" << doorAndWeightText << "] value:" << pR->getDoor(doorAndWeightText) << "found for room!";
     }
 
-    TRoom* pExitR = nullptr;
+    std::shared_ptr<TRoom> pExitR;
     if (exitId > 0) {
         pExitR = mpHost->mpMap->mpRoomDB->getRoom(exitId);
         if (!pExitR) {

@@ -201,7 +201,7 @@ public:
     bool getDefaultAreaShown() { return mShowDefaultArea; }
 
 
-    TRoomDB* mpRoomDB = nullptr;
+    std::shared_ptr<TRoomDB> mpRoomDB;
     QMap<int, int> mEnvColors;
     QPointer<Host> mpHost;
     QString mProfileName;

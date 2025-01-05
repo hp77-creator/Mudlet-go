@@ -195,7 +195,7 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
     }
 
     const int playerRoomId = mpMap->mRoomIdHash.value(mpMap->mProfileName);
-    TRoom* pPlayerRoom = mpMap->mpRoomDB->getRoom(playerRoomId);
+    auto pPlayerRoom = mpMap->mpRoomDB->getRoom(playerRoomId);
     int playerAreaID = -2; // Cannot be valid (but -1 can be)!
     if (pPlayerRoom) {
         playerAreaID = pPlayerRoom->getArea();
@@ -207,7 +207,7 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
         it.next();
         const int areaID = it.key();
         auto areaName = it.value();
-        TArea* area = mpMap->mpRoomDB->getArea(areaID);
+        auto area = mpMap->mpRoomDB->getArea(areaID);
         if (area && newAreaName == areaName) {
             if (mAreaID != areaID) {
                 // We are changing the viewed area - so change the zoom to the
@@ -260,7 +260,7 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
                 QMap<int, int> roomsCountLevelMap;
                 while (itRoom.hasNext()) {
                     const int checkRoomID = itRoom.next();
-                    TRoom* room = mpMap->mpRoomDB->getRoom(checkRoomID);
+                    auto room = mpMap->mpRoomDB->getRoom(checkRoomID);
                     if (room) {
                         validRoomFound = true;
                         if (roomsCountLevelMap.contains(room->z())) {
@@ -298,10 +298,10 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
                     float mean_x = 0.0;
                     float mean_y = 0.0;
                     uint processedRoomCount = 0;
-                    QSet<TRoom*> roomsToConsider; // Hold on to relevant rooms for
+                    QSet<std::shared_ptr<TRoom>> roomsToConsider; // Hold on to relevant rooms for
                                          // following step
                     while (itRoom.hasNext()) {
-                        TRoom* room = mpMap->mpRoomDB->getRoom(itRoom.next());
+                        auto room = mpMap->mpRoomDB->getRoom(itRoom.next());
                         if (!room || room->z() != minLevelWithMaxRoomCount) {
                             continue;
                         }
@@ -314,11 +314,11 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
                     // We now have the position that is the "centre" of the
                     // rooms on this level - just need to find the room nearest
                     // to that:
-                    QSetIterator<TRoom*> itpRoom(roomsToConsider);
+                    QSetIterator<std::shared_ptr<TRoom>> itpRoom(roomsToConsider);
                     float closestSquareDistance = -1.0;
-                    TRoom* closestCenterRoom = nullptr;
+                    std::shared_ptr<TRoom> closestCenterRoom;
                     while (itpRoom.hasNext()) {
-                        TRoom* room = itpRoom.next();
+                        auto room = itpRoom.next();
                         const QVector2D meanToRoom(static_cast<float>(room->x()) - mean_x, static_cast<float>(room->y()) - mean_y);
                         if (closestSquareDistance < -0.5) {
                             // Test for first time around loop - for initialisation
@@ -360,11 +360,11 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
                 float mean_x = 0.0;
                 float mean_y = 0.0;
                 uint processedRoomCount = 0;
-                QSet<TRoom*> roomsToConsider; // Hold on to relevant rooms for
+                QSet<std::shared_ptr<TRoom>> roomsToConsider; // Hold on to relevant rooms for
                                      // following step
                 QSetIterator<int> itRoom(area->getAreaRooms());
                 while (itRoom.hasNext()) {
-                    TRoom* room = mpMap->mpRoomDB->getRoom(itRoom.next());
+                    auto room = mpMap->mpRoomDB->getRoom(itRoom.next());
                     if (!room || room->z() != mMapCenterZ) {
                         continue;
                     }
@@ -377,11 +377,11 @@ void T2DMap::slot_switchArea(const QString& newAreaName)
                 // We now have the position that is the "centre" of the
                 // rooms on this level - just need to find the room nearest
                 // to that:
-                QSetIterator<TRoom*> itpRoom(roomsToConsider);
+                QSetIterator<std::shared_ptr<TRoom>> itpRoom(roomsToConsider);
                 float closestSquareDistance = -1.0;
-                TRoom* closestCenterRoom = nullptr;
+                std::shared_ptr<TRoom> closestCenterRoom;
                 while (itpRoom.hasNext()) {
-                    TRoom* room = itpRoom.next();
+                    auto room = itpRoom.next();
                     const QVector2D meanToRoom(static_cast<float>(room->x()) - mean_x, static_cast<float>(room->y()) - mean_y);
                     if (closestSquareDistance < -0.5) {
                         // Test for first time around loop - for initialisation
@@ -593,7 +593,7 @@ void T2DMap::initiateSpeedWalk(const int speedWalkStartRoomId, const int speedWa
                              QFont& roomVNumFont,
                              QFont& mapNameFont,
                              QPen& pen,
-                             TRoom* pRoom,
+                             std::shared_ptr<TRoom> pRoom,
                              const bool isGridMode,
                              const bool areRoomIdsLegible,
                              const bool showRoomName,
@@ -1213,7 +1213,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
     QList<int> exitList;
     QList<int> oneWayExits;
     const int playerRoomId = mpMap->mRoomIdHash.value(mpMap->mProfileName);
-    TRoom* pPlayerRoom = mpMap->mpRoomDB->getRoom(playerRoomId);
+    auto pPlayerRoom = mpMap->mpRoomDB->getRoom(playerRoomId);
     if (!pPlayerRoom) {
         painter.save();
         painter.fillRect(0, 0, width(), height(), Qt::transparent);
@@ -1422,7 +1422,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
     QSetIterator<int> itRoom(pDrawnArea->getAreaRooms());
     while (itRoom.hasNext()) {
         const int currentAreaRoom = itRoom.next();
-        TRoom* room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
+        auto room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
         if (!room) {
             continue;
         }
@@ -1536,7 +1536,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
     // editing but this could not be done there because gridmode areas don't hit
     // that bit of code and later rooms would overwrite the target...
     if (mMultiSelectionHighlightRoomId > 0 && mMultiSelectionSet.size() > 1) {
-        TRoom* pR_multiSelectionHighlight = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+        auto pR_multiSelectionHighlight = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
         if (pR_multiSelectionHighlight) {
             const float r_mSx = pR_multiSelectionHighlight->x() * mRoomWidth + mRX;
             const float r_mSy = pR_multiSelectionHighlight->y() * -1 * mRoomHeight + mRY;
@@ -1702,7 +1702,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
     if (mCustomLinesRoomTo > 0) {
         customLineDestinationTarget = mCustomLinesRoomTo;
     } else if (mCustomLineSelectedRoom > 0 && !mCustomLineSelectedExit.isEmpty()) {
-        TRoom* pSR = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+        auto pSR = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
         if (pSR) {
             if (mCustomLineSelectedExit == key_nw) {
                 customLineDestinationTarget = pSR->getNorthwest();
@@ -1736,7 +1736,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
     QSetIterator<int> itRoom2(pArea->getAreaRooms());
     while (itRoom2.hasNext()) {
         const int _id = itRoom2.next();
-        TRoom* room = mpMap->mpRoomDB->getRoom(_id);
+        auto room = mpMap->mpRoomDB->getRoom(_id);
         if (!room) {
             continue;
         }
@@ -1784,7 +1784,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             // This room has custom exit lines:
             if (!room->customLines.contains(key_n)) {
                 exitList.push_back(room->getNorth());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getNorth());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getNorth());
                 if (pER) {
                     if (pER->getSouth() != _id) {
                         oneWayExits.push_back(room->getNorth());
@@ -1793,7 +1793,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_ne)) {
                 exitList.push_back(room->getNortheast());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getNortheast());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getNortheast());
                 if (pER) {
                     if (pER->getSouthwest() != _id) {
                         oneWayExits.push_back(room->getNortheast());
@@ -1802,7 +1802,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_e)) {
                 exitList.push_back(room->getEast());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getEast());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getEast());
                 if (pER) {
                     if (pER->getWest() != _id) {
                         oneWayExits.push_back(room->getEast());
@@ -1811,7 +1811,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_se)) {
                 exitList.push_back(room->getSoutheast());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getSoutheast());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getSoutheast());
                 if (pER) {
                     if (pER->getNorthwest() != _id) {
                         oneWayExits.push_back(room->getSoutheast());
@@ -1820,7 +1820,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_s)) {
                 exitList.push_back(room->getSouth());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getSouth());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getSouth());
                 if (pER) {
                     if (pER->getNorth() != _id) {
                         oneWayExits.push_back(room->getSouth());
@@ -1829,7 +1829,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_sw)) {
                 exitList.push_back(room->getSouthwest());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getSouthwest());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getSouthwest());
                 if (pER) {
                     if (pER->getNortheast() != _id) {
                         oneWayExits.push_back(room->getSouthwest());
@@ -1838,7 +1838,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_w)) {
                 exitList.push_back(room->getWest());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getWest());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getWest());
                 if (pER) {
                     if (pER->getEast() != _id) {
                         oneWayExits.push_back(room->getWest());
@@ -1847,7 +1847,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             }
             if (!room->customLines.contains(key_nw)) {
                 exitList.push_back(room->getNorthwest());
-                TRoom* pER = mpMap->mpRoomDB->getRoom(room->getNorthwest());
+                auto pER = mpMap->mpRoomDB->getRoom(room->getNorthwest());
                 if (pER) {
                     if (pER->getSoutheast() != _id) {
                         oneWayExits.push_back(room->getNorthwest());
@@ -1858,7 +1858,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             int exitRoomId = room->getNorth();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getSouth() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1868,7 +1868,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getNortheast();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getSouthwest() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1878,7 +1878,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getEast();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getWest() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1888,7 +1888,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getSoutheast();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getNorthwest() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1898,7 +1898,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getSouth();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getNorth() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1908,7 +1908,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getSouthwest();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getNortheast() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1918,7 +1918,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getWest();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getEast() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -1928,7 +1928,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
             exitRoomId = room->getNorthwest();
             if (exitRoomId > 0) {
                 exitList.push_back(exitRoomId);
-                TRoom* pER = mpMap->mpRoomDB->getRoom(exitRoomId);
+                auto pER = mpMap->mpRoomDB->getRoom(exitRoomId);
                 if (pER) {
                     if (pER->getSoutheast() != _id) {
                         oneWayExits.push_back(exitRoomId);
@@ -2115,7 +2115,7 @@ void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, 
 
             bool areaExit;
 
-            TRoom* pE = mpMap->mpRoomDB->getRoom(rID);
+            auto pE = mpMap->mpRoomDB->getRoom(rID);
             if (!pE) {
                 continue;
             }
@@ -2363,7 +2363,7 @@ void T2DMap::paintMapInfo(const QElapsedTimer& renderTimer, QPainter& painter, c
         }
     }
 
-    TRoom* pRoom = mpMap->mpRoomDB->getRoom(roomID);
+    auto pRoom = mpMap->mpRoomDB->getRoom(roomID);
     if (!pRoom) {
         // Can't call pRoom->getArea() further down without a valid pRoom!
         return;
@@ -2602,7 +2602,7 @@ void T2DMap::mouseReleaseEvent(QMouseEvent* event)
                 return;
             }
 
-            TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
+            auto room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
             if (room) {
                 //: 2D Mapper context menu (drawing custom exit line) item
                 auto customLineUndoLastPoint = new QAction(tr("Undo"), this);
@@ -2648,7 +2648,7 @@ void T2DMap::mouseReleaseEvent(QMouseEvent* event)
                 QSetIterator<int> itRoom(pArea->getAreaRooms());
                 while (itRoom.hasNext()) { // Scan to find rooms in selection
                     const int currentAreaRoom = itRoom.next();
-                    TRoom *room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
+                    auto room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
                     if (!room) {
                         continue;
                     }
@@ -2844,7 +2844,7 @@ void T2DMap::mouseReleaseEvent(QMouseEvent* event)
             //                   mCustomLineSelectedPoint);
 
             if (mCustomLineSelectedRoom > 0) {
-                TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+                auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
                 if (room) {
                     //: 2D Mapper context menu (custom line editing) item
                     auto addPoint = new QAction(tr("Add point"), this);
@@ -3022,7 +3022,7 @@ void T2DMap::mousePressEvent(QMouseEvent* event)
                 return; // Prevent any line drawing until ready
             }
 
-            TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
+            auto room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
             if (room) {
                 const float mx = (event->pos().x() / mRoomWidth) + mMapCenterX - (xspan / 2.0);
                 const float my = (yspan / 2.0) - (event->pos().y() / mRoomHeight) - mMapCenterY;
@@ -3045,7 +3045,7 @@ void T2DMap::mousePressEvent(QMouseEvent* event)
                 QSetIterator<int> itRoom = pA->rooms;
                 while (itRoom.hasNext()) {
                     const int currentRoomId = itRoom.next();
-                    TRoom* room = mpMap->mpRoomDB->getRoom(currentRoomId);
+                    auto room = mpMap->mpRoomDB->getRoom(currentRoomId);
                     if (!room) {
                         continue;
                     }
@@ -3149,7 +3149,7 @@ void T2DMap::mousePressEvent(QMouseEvent* event)
             QSetIterator<int> itRoom(pArea->getAreaRooms());
             while (itRoom.hasNext()) { // Scan to find rooms in selection
                 const int currentAreaRoom = itRoom.next();
-                TRoom* room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
+                auto room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
                 if (!room) {
                     continue;
                 }
@@ -3262,7 +3262,7 @@ void T2DMap::updateSelectionWidget()
             const int multiSelectionRoomId = itRoom.next();
             _item->setText(0, key_plain.arg(multiSelectionRoomId, mMaxRoomIdDigits));
             _item->setTextAlignment(0, Qt::AlignRight);
-            TRoom *pR_multiSelection = mpMap->mpRoomDB->getRoom(multiSelectionRoomId);
+            auto pR_multiSelection = mpMap->mpRoomDB->getRoom(multiSelectionRoomId);
             if (pR_multiSelection) {
                 const QString multiSelectionRoomName = pR_multiSelection->name;
                 if (!multiSelectionRoomName.isEmpty()) {
@@ -3332,7 +3332,7 @@ void T2DMap::slot_createRoom()
 void T2DMap::slot_customLineProperties()
 {
     QString exit;
-    TRoom* room;
+    std::shared_ptr<TRoom> room;
 
     if (mCustomLineSelectedRoom > 0) {
         room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
@@ -3440,7 +3440,7 @@ void T2DMap::slot_customLineProperties()
 
 void T2DMap::slot_customLineAddPoint()
 {
-    TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+    auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
     if (!room) {
         return;
     }
@@ -3493,7 +3493,7 @@ void T2DMap::slot_customLineAddPoint()
 
 void T2DMap::slot_customLineRemovePoint()
 {
-    TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+    auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
     if (!room) {
         return;
     }
@@ -3518,7 +3518,7 @@ void T2DMap::slot_customLineRemovePoint()
 void T2DMap::slot_undoCustomLineLastPoint()
 {
     if (mCustomLinesRoomFrom > 0) {
-        TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
+        auto room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
         if (room) {
             if (room->customLines.value(mCustomLinesRoomExit).count() > 0) {
                 room->customLines[mCustomLinesRoomExit].pop_back();
@@ -3541,7 +3541,7 @@ void T2DMap::slot_doneCustomLine()
     mCustomLinesRoomTo = 0;
     mCustomLinesRoomExit.clear();
     if (!mMultiSelectionSet.empty()) {
-        TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+        auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
         if (room) {
             room->calcRoomDimensions();
         }
@@ -3553,7 +3553,7 @@ void T2DMap::slot_doneCustomLine()
 void T2DMap::slot_deleteCustomExitLine()
 {
     if (mCustomLineSelectedRoom > 0) {
-        TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+        auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
         if (room) {
             room->customLinesArrow.remove(mCustomLineSelectedExit);
             room->customLinesColor.remove(mCustomLineSelectedExit);
@@ -3691,7 +3691,7 @@ void T2DMap::slot_movePosition()
         return;
     }
 
-    TRoom* pR_start = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+    auto pR_start = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
     // pR has already been validated by getCenterSelection()
 
     auto dialog = new QDialog(this);
@@ -3761,7 +3761,7 @@ void T2DMap::slot_movePosition()
         QSetIterator<int> itRoom = mMultiSelectionSet;
         QSet<int> dirtyAreas;
         while (itRoom.hasNext()) {
-            TRoom* room = mpMap->mpRoomDB->getRoom(itRoom.next());
+            auto room = mpMap->mpRoomDB->getRoom(itRoom.next());
             if (!room) {
                 continue;
             }
@@ -3808,7 +3808,7 @@ void T2DMap::slot_showPropertiesDialog()
 
     bool isAtLeastOneRoom = false;
     QSetIterator<int> itRoom = mMultiSelectionSet;
-    QSet<TRoom*> roomPtrsSet;
+    QSet<std::shared_ptr<TRoom>> roomPtrsSet;
 
     QHash<QString, int> usedNames;
     QHash<int, int> usedColors;
@@ -3817,7 +3817,7 @@ void T2DMap::slot_showPropertiesDialog()
     QHash<bool, int> usedLockStatus;
 
     while (itRoom.hasNext()) {
-        TRoom* room = mpMap->mpRoomDB->getRoom(itRoom.next());
+        auto room = mpMap->mpRoomDB->getRoom(itRoom.next());
         if (!room) {
             continue;
         }
@@ -3894,7 +3894,7 @@ void T2DMap::slot_setRoomProperties(
     bool changeSymbolColor, QColor newSymbolColor,
     bool changeWeight, int newWeight,
     bool changeLockStatus, bool newLockStatus,
-    QSet<TRoom*> rooms)
+    QSet<std::shared_ptr<TRoom>> rooms)
 {
     if (newName.isEmpty()) {
         newName = QString();
@@ -3916,8 +3916,8 @@ void T2DMap::slot_setRoomProperties(
         newSymbol = newSymbol.normalized(QString::NormalizationForm_C, QChar::Unicode_10_0);
     }
 
-    QSetIterator<TRoom*> itpRoom(rooms);
-    TRoom* room = nullptr;
+    QSetIterator<std::shared_ptr<TRoom>> itpRoom(rooms);
+    std::shared_ptr<TRoom> room;
 
     while (itpRoom.hasNext()) {
         room = itpRoom.next();
@@ -3971,7 +3971,7 @@ void T2DMap::slot_spread()
         return;
     }
 
-    TRoom* pR_centerRoom = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+    auto pR_centerRoom = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
     if (!pR_centerRoom) {
         return;
     }
@@ -4003,7 +4003,7 @@ void T2DMap::slot_spread()
     bool doneSomething = false;
     QSetIterator<int> itSelectionRoom = mMultiSelectionSet;
     while (itSelectionRoom.hasNext()) {
-        TRoom* pMovingR = mpMap->mpRoomDB->getRoom(itSelectionRoom.next());
+        auto pMovingR = mpMap->mpRoomDB->getRoom(itSelectionRoom.next());
         if (!pMovingR) {
             continue;
         }
@@ -4043,7 +4043,7 @@ void T2DMap::slot_shrink()
         return;
     }
 
-    TRoom* pR_centerRoom = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+    auto pR_centerRoom = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
     if (!pR_centerRoom) {
         return;
     }
@@ -4075,7 +4075,7 @@ void T2DMap::slot_shrink()
     bool doneSomething = false;
     QSetIterator<int> itSelectionRoom(mMultiSelectionSet);
     while (itSelectionRoom.hasNext()) {
-        TRoom* pMovingR = mpMap->mpRoomDB->getRoom(itSelectionRoom.next());
+        auto pMovingR = mpMap->mpRoomDB->getRoom(itSelectionRoom.next());
         if (!pMovingR) {
             continue;
         }
@@ -4333,7 +4333,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
     }
 
     if (mCustomLineSelectedRoom != 0 && mCustomLineSelectedPoint >= 0) {
-        TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
+        auto room = mpMap->mpRoomDB->getRoom(mCustomLineSelectedRoom);
         if (room) {
             if (room->customLines.contains(mCustomLineSelectedExit)) {
                 if (room->customLines[mCustomLineSelectedExit].size() > mCustomLineSelectedPoint) {
@@ -4414,7 +4414,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
             QSetIterator<int> itSelectedRoom(pArea->getAreaRooms());
             while (itSelectedRoom.hasNext()) {
                 const int currentRoomId = itSelectedRoom.next();
-                TRoom* room = mpMap->mpRoomDB->getRoom(currentRoomId);
+                auto room = mpMap->mpRoomDB->getRoom(currentRoomId);
                 if (!room) {
                     continue;
                 }
@@ -4464,7 +4464,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
                     const int multiSelectionRoomId = itRoom.next();
                     item->setText(0, qsl("%1").arg(multiSelectionRoomId, mMaxRoomIdDigits));
                     item->setTextAlignment(0, Qt::AlignRight);
-                    TRoom* pR_multiSelection = mpMap->mpRoomDB->getRoom(multiSelectionRoomId);
+                    auto pR_multiSelection = mpMap->mpRoomDB->getRoom(multiSelectionRoomId);
                     if (pR_multiSelection) {
                         const QString multiSelectionRoomName = pR_multiSelection->name;
                         if (!multiSelectionRoomName.isEmpty()) {
@@ -4509,7 +4509,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
             return;
         }
 
-        TRoom* room = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+        auto room = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
         if (!room) {
             return;
         }
@@ -4564,7 +4564,7 @@ bool T2DMap::getCenterSelection()
     uint processedRoomCount = 0;
     while (itRoom.hasNext()) {
         const int currentRoomId = itRoom.next();
-        TRoom* room = mpMap->mpRoomDB->getRoom(currentRoomId);
+        auto room = mpMap->mpRoomDB->getRoom(currentRoomId);
         if (!room) {
             continue;
         }
@@ -4579,7 +4579,7 @@ bool T2DMap::getCenterSelection()
         float closestSquareDistance = -1.0;
         while (itRoom.hasNext()) {
             const int currentRoomId = itRoom.next();
-            TRoom* room = mpMap->mpRoomDB->getRoom(currentRoomId);
+            auto room = mpMap->mpRoomDB->getRoom(currentRoomId);
             if (!room) {
                 continue;
             }
@@ -4744,7 +4744,7 @@ void T2DMap::slot_setCustomLine()
     if (mMultiSelectionSet.isEmpty()) {
         return;
     }
-    TRoom* room = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
+    auto room = mpMap->mpRoomDB->getRoom(mMultiSelectionHighlightRoomId);
     if (!room) {
         return;
     }
@@ -5032,7 +5032,7 @@ void T2DMap::slot_setCustomLine2()
 
     mpCustomLinesDialog->hide(); // Hide but don't delete until done the custom line
     mDialogLock = false;
-    TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
+    auto room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
     if (!room) {
         return;
     }
@@ -5120,7 +5120,7 @@ void T2DMap::slot_setCustomLine2B(QTreeWidgetItem* special_exit, int column)
     mCustomLinesRoomExit = exit;
     mCustomLinesRoomTo = special_exit->text(1).toInt(); // Wasn't being set !
     mDialogLock = false;
-    TRoom* room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
+    auto room = mpMap->mpRoomDB->getRoom(mCustomLinesRoomFrom);
     if (!room) {
         return;
     }

@@ -66,10 +66,10 @@ QDataStream &operator>>(QDataStream& ds, Qt::PenStyle& value)
 static const QColor scDefaultHighlightForeground(QColor(255, 150, 0));
 static const QColor scDefaultHighlightBackground(QColor(0, 0, 0));
 
-TRoom::TRoom(TRoomDB* pRDB)
+TRoom::TRoom(std::shared_ptr<TRoomDB> pRDB)
 : highlightColor(scDefaultHighlightForeground)
 , highlightColor2(scDefaultHighlightBackground)
-, mpRoomDB(pRDB)
+, mpRoomDB(pRDB.get())
 {
 }
 
@@ -371,7 +371,7 @@ bool TRoom::setExit(const int to, const int direction)
     default:
         return false;
     }
-    mpRoomDB->updateEntranceMap(this);
+    mpRoomDB->updateEntranceMap(shared_from_this());
     mpRoomDB->mpMap->setUnsaved(__func__);
     return true;
 }
@@ -580,7 +580,7 @@ void TRoom::setSpecialExit(const int to, const QString& cmd)
         pA->determineAreaExitsOfRoom(id);
         // This updates the (TArea *)->exits map even for exit REMOVALS
     }
-    mpRoomDB->updateEntranceMap(this);
+    mpRoomDB->updateEntranceMap(shared_from_this());
     mpRoomDB->mpMap->mMapGraphNeedsUpdate = true;
     mpRoomDB->mpMap->setUnsaved(__func__);
 }
@@ -604,7 +604,7 @@ void TRoom::clearSpecialExits()
         // Then remove the exit itself from the QMap:
         itSpecialExit.remove();
     }
-    mpRoomDB->updateEntranceMap(this);
+    mpRoomDB->updateEntranceMap(shared_from_this());
     mpRoomDB->mpMap->mMapGraphNeedsUpdate = true;
     mpRoomDB->mpMap->setUnsaved(__func__);
 }
@@ -636,7 +636,7 @@ void TRoom::removeAllSpecialExitsToRoom(const int roomId)
         if (pA) {
             pA->determineAreaExitsOfRoom(id);
         }
-        mpRoomDB->updateEntranceMap(this);
+        mpRoomDB->updateEntranceMap(shared_from_this());
         mpRoomDB->mpMap->mMapGraphNeedsUpdate = true;
         mpRoomDB->mpMap->setUnsaved(__func__);
     }
@@ -2362,3 +2362,6 @@ void TRoom::readJsonSymbol(const QJsonObject& roomObj)
     }
 }
 
+uint qHash(const std::shared_ptr<TRoom>& key, uint seed) noexcept {
+    return key ? qHash(key->getId(), seed) : 0;
+}

@@ -49,7 +49,7 @@ using namespace boost;
 struct location
 {
     int id;    // Typically 4 bytes
-    TRoom* pR; // 4 or 8 bytes? - so may have reduced size from 20 to 8 or 12 plus padding...?
+    std::shared_ptr<TRoom> pR; // Raw pointer - rooms are managed by TRoomDB
 };
 
 typedef float cost;

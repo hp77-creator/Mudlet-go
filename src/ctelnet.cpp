@@ -73,10 +73,10 @@ cTelnet::cTelnet(Host* pH, const QString& profileName)
 , mpHost(pH)
 , mpPostingTimer(new QTimer(this))
 {
-    // initialize encoding to a sensible default - needs to be a different value
-    // than that in the initialisation list so that it is processed as a change
-    // to set up the initial encoder
-    encodingChanged("UTF-8");
+    // Delay encoding initialization until after Host is fully constructed
+    QTimer::singleShot(0, this, [this]() {
+        encodingChanged("UTF-8");
+    });
     termType = qsl("Mudlet " APP_VERSION);
     if (mudlet::self()->mAppBuild.trimmed().length()) {
         termType.append(mudlet::self()->mAppBuild);

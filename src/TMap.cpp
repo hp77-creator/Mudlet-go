@@ -47,7 +47,7 @@
 TMap::TMap(Host* pH, const QString& profileName)
 : mDefaultAreaName(tr("Default Area"))
 , mUnnamedAreaName(tr("Unnamed Area"))
-, mpRoomDB(new TRoomDB(this))
+, mpRoomDB(TRoomDB::createTRoomDB(this))
 , mpHost(pH)
 , mProfileName(profileName)
 {
@@ -67,7 +67,7 @@ TMap::TMap(Host* pH, const QString& profileName)
 
 TMap::~TMap()
 {
-    delete mpRoomDB;
+    // delete mpRoomDB;
     if (!mStoredMessages.isEmpty()) {
         qWarning() << "TMap::~TMap() Instance being destroyed before it could display some messages,\n"
                    << "messages are:\n"
@@ -131,7 +131,7 @@ void TMap::logError(QString& msg)
 
 bool TMap::setRoomArea(int id, int area, bool deferAreaRecalculations)
 {
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (!pR) {
         QString msg = tr("RoomID=%1 does not exist, can not set AreaID=%2 for non-existing room!").arg(id).arg(area);
         logError(msg);
@@ -175,7 +175,7 @@ bool TMap::addRoom(int id)
 
 bool TMap::setRoomCoordinates(int id, int x, int y, int z)
 {
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (!pR) {
         return false;
     }
@@ -201,7 +201,7 @@ QString TMap::connectExitStubByDirection(const int fromRoomId, const int dirType
     Q_ASSERT_X(scmUnitVectors.contains(dirType), "TMap::connectExitStubByDirection(...)", "there is no unitVector.value() for the given dirType");
     Q_ASSERT_X(scmReverseDirections.contains(dirType), "TMap::connectExitStubByDirection(...)", "there is no scmReverseDirections.value() for the given dirType");
 
-    TRoom* pFromR = mpRoomDB->getRoom(fromRoomId);
+    auto pFromR = mpRoomDB->getRoom(fromRoomId);
     if (!pFromR) {
         return qsl("fromID (%1) does not exist").arg(fromRoomId);
     }
@@ -448,8 +448,8 @@ int TMap::createNewRoomID(int minimumId)
 bool TMap::setExit(int from, int to, int dir)
 {
     // FIXME: This along with TRoom->setExit need to be unified to a controller.
-    TRoom* pR = mpRoomDB->getRoom(from);
-    TRoom* pR_to = mpRoomDB->getRoom(to);
+    auto pR = mpRoomDB->getRoom(from);
+    auto pR_to = mpRoomDB->getRoom(to);
 
     if (!pR) {
         return false;
@@ -510,7 +510,7 @@ bool TMap::setExit(int from, int to, int dir)
         return false;
     }
     pA->determineAreaExitsOfRoom(pR->getId());
-    mpRoomDB->updateEntranceMap(pR);
+    mpRoomDB->updateEntranceMap(std::move(pR));
     setUnsaved(__func__);
     return ret;
 }
@@ -606,7 +606,7 @@ void TMap::audit()
 QList<int> TMap::detectRoomCollisions(int id)
 {
     QList<int> collList;
-    TRoom* pR = mpRoomDB->getRoom(id);
+    auto pR = mpRoomDB->getRoom(id);
     if (!pR) {
         return collList;
     }
@@ -685,17 +685,17 @@ void TMap::initGraph()
     QSet<unsigned int> unUsableRoomSet;
     // Keep track of the unusable rather than the usable ones because that is
     // hopefully a MUCH smaller set in normal situations!
-    QHashIterator<int, TRoom*> itRoom = mpRoomDB->getRoomMap();
+    QHashIterator<int, std::shared_ptr<TRoom>> itRoom = mpRoomDB->getRoomMap();
     while (itRoom.hasNext()) {
         itRoom.next();
-        TRoom* pR = itRoom.value();
+        const auto& pR = itRoom.value();
         if (itRoom.key() < 1 || !pR || pR->isLocked) {
             unUsableRoomSet.insert(itRoom.key());
             continue;
         }
 
         location l;
-        l.pR = pR;
+        l.pR = std::move(pR);
         l.id = itRoom.key();
         // locations is std::vector<location> and (locations.at(k)).id will give room ID value
         locations.push_back(l);
@@ -707,14 +707,14 @@ void TMap::initGraph()
     // Now identify the routes between rooms, and pick out the best edges of parallel ones
     for (auto l : locations) {
         unsigned const int source = l.id;
-        TRoom* pSourceR = l.pR;
+        auto pSourceR = l.pR;
         QHash<unsigned int, route> bestRoutes;
         // key is target (destination room),
         // value is data we will need to store later,
         QMap<QString, int> const exitWeights = pSourceR->getExitWeights();
 
         int target = pSourceR->getNorth();
-        TRoom* pTargetR;
+        std::shared_ptr<TRoom> pTargetR;
         quint8 direction = DIR_NORTH;
         if (target > 0 && static_cast<int>(source) != target && !unUsableRoomSet.contains(target) && !pSourceR->hasExitLock(direction)) {
             // In above tests the second test is to eliminate self-edges (they
@@ -948,8 +948,8 @@ bool TMap::findPath(int from, int to)
         return true; // Take a short-cut for trivial "already there" case!
     }
 
-    TRoom* pFrom = mpRoomDB->getRoom(from);
-    TRoom* pTo = mpRoomDB->getRoom(to);
+    auto pFrom = mpRoomDB->getRoom(from);
+    auto pTo = mpRoomDB->getRoom(to);
 
     if (!pFrom || !pTo) {
         qDebug() << "TMap::findPath(" << from << "," << to << ") FAIL: NULL TRoom pointer for start or target rooms!";
@@ -1285,10 +1285,10 @@ bool TMap::serialize(QDataStream& ofs, int saveVersion)
         }
     }
 
-    QHashIterator<int, TRoom*> it(mpRoomDB->getRoomMap());
+    QHashIterator<int, std::shared_ptr<TRoom>> it(mpRoomDB->getRoomMap());
     while (it.hasNext()) {
         it.next();
-        TRoom* pR = it.value();
+        const auto pR = it.value();
         if (!pR) {
             qDebug() << "TMap::serialize(...) skipping a room with a NULL TRoom pointer:" << it.key();
             continue;
@@ -1864,7 +1864,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
         while (!ifs.atEnd()) {
             int i = 0;
             ifs >> i;
-            auto pT = new TRoom(mpRoomDB);
+            auto pT = std::make_shared<TRoom>(mpRoomDB);
             pT->restore(ifs, i, mVersion);
             mpRoomDB->restoreSingleRoom(i, pT);
         }
@@ -2404,7 +2404,7 @@ void TMap::pushErrorMessagesToFile(const QString title, const bool isACleanup)
     while (itRoomsMsg.hasNext()) {
         itRoomsMsg.next();
         QString titleText;
-        TRoom* pR = mpRoomDB->getRoom(itRoomsMsg.key());
+        auto pR = mpRoomDB->getRoom(itRoomsMsg.key());
         if (pR && !pR->name.isEmpty()) {
             titleText = tr(R"(Room id: %1 "%2")").arg(itRoomsMsg.key()).arg(pR->name);
         } else {
@@ -2810,7 +2810,7 @@ void TMap::reportProgressToProgressDialog(const int current, const int maximum)
 QHash<QString, QSet<int>> TMap::roomSymbolsHash()
 {
     QHash<QString, QSet<int>> results;
-    QHashIterator<int, TRoom*> itRoom(mpRoomDB->getRoomMap());
+    QHashIterator<int, std::shared_ptr<TRoom>> itRoom(mpRoomDB->getRoomMap());
     while (itRoom.hasNext()) {
         itRoom.next();
         if (itRoom.value() && !itRoom.value()->mSymbol.isEmpty()) {
@@ -3228,20 +3228,22 @@ std::pair<bool, QString> TMap::readJsonMapFile(const QString& source, const bool
         }
     }
 
-    TRoomDB* pNewRoomDB = new TRoomDB(this);
+    auto pNewRoomDB = new TRoomDB(this);
     bool abort = false;
     for (int i = 0, total = mapObj.value(QLatin1String("areas")).toArray().count(); i < total; ++i) {
-        std::unique_ptr<TArea> pArea = std::make_unique<TArea>(this, pNewRoomDB);
+        std::shared_ptr<TRoomDB> pRoomDBPtr(pNewRoomDB);
+        TArea* pArea = new TArea(this, pRoomDBPtr);
         auto [id, name] = pArea->readJsonArea(mapObj.value(QLatin1String("areas")).toArray(), i);
         ++mProgressDialogAreasCount;
         if (incrementJsonProgressDialog(false, true, 0)) {
             if (allowUserCancellation) {
                 abort = true;
+                delete pArea;
             }
             break;
         }
         // This will populate the TRoomDB::areas and TRoomDB::areaNameMap:
-        pNewRoomDB->addArea(pArea.release(), id, name);
+        pNewRoomDB->addArea(pArea, id, name);
     }
     if (abort) {
         mpProgressDialog->setAttribute(Qt::WA_DeleteOnClose, true);
@@ -3275,15 +3277,15 @@ std::pair<bool, QString> TMap::readJsonMapFile(const QString& source, const bool
     qDebug().nospace().noquote() << "TMap::readJsonMapFile(...) INFO - parsed a file (version: " << formatVersion << ") containing " << mProgressDialogRoomsCount << " rooms.";
 
     // This is it - the point at which the new map gets activated:
-    TRoomDB* pOldRoomDB = mpRoomDB;
-    mpRoomDB = pNewRoomDB;
+    auto pOldRoomDB = mpRoomDB;
+    mpRoomDB = std::shared_ptr<TRoomDB>(pNewRoomDB);
     // Need to update the master copy of these details in the Host class:
     mpHost->setPlayerRoomStyleDetails(mPlayerRoomStyle, mPlayerRoomOuterDiameterPercentage, mPlayerRoomInnerDiameterPercentage, mPlayerRoomOuterColor, mPlayerRoomInnerColor);
     // And redraw the indicator if a 2D map is being shown:
     if (mpMapper && mpMapper->mp2dMap) {
         mpMapper->mp2dMap->setPlayerRoomStyle(mPlayerRoomStyle);
     }
-    delete pOldRoomDB;
+    // delete pOldRoomDB;
     mpProgressDialog->setAttribute(Qt::WA_DeleteOnClose, true);
     mpProgressDialog->close();
     mpProgressDialog = nullptr;
@@ -3450,7 +3452,7 @@ QColor TMap::getColor(int id)
 {
     QColor color;
 
-    TRoom* room = mpRoomDB->getRoom(id);
+    auto room = mpRoomDB->getRoom(id);
     if (!room) {
         return color;
     }

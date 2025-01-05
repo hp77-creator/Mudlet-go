@@ -24,8 +24,6 @@
  ***************************************************************************/
 
 
-#include "TMap.h"
-
 #include "pre_guard.h"
 #include <QApplication>
 #include <QColor>
@@ -41,14 +39,17 @@ class XMLexport;
 class TRoomDB;
 class QJsonArray;
 class QJsonObject;
+class TRoom;
 
+uint qHash(const std::shared_ptr<TRoom>& key, uint seed) noexcept;
 
-class TRoom
+#include "TMap.h"
+class TRoom : public std::enable_shared_from_this<TRoom>
 {
     Q_DECLARE_TR_FUNCTIONS(TRoom) // Needed so we can use tr() even though TRoom is NOT derived from QObject
 
 public:
-    explicit TRoom(TRoomDB* pRDB);
+    explicit TRoom(std::shared_ptr<TRoomDB> pRDB);
     ~TRoom();
     void setId(const int);
     bool setExit(const int to, const int direction);
@@ -216,13 +217,13 @@ private:
     QMap<QString, int> mSpecialExits;
     QSet<QString> mSpecialExitLocks;
 
-    TRoomDB* mpRoomDB = nullptr;
+    std::shared_ptr<TRoomDB> mpRoomDB = nullptr;
     friend class XMLimport;
     friend class XMLexport;
 };
 
 #ifndef QT_NO_DEBUG_STREAM
-inline QDebug operator<<(QDebug debug, const TRoom* room)
+inline QDebug operator<<(QDebug debug, const std::shared_ptr<TRoom> room)
 {
     if (!room) {
         return debug << "TRoom(0x0) ";

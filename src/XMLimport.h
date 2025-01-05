@@ -74,8 +74,8 @@ private:
     void readMap();
     void readRoom(QMultiHash<int, int>&, unsigned int*);
     void readRooms(QMultiHash<int, int>&);
-    void readRoomFeature(TRoom*);
-    void readRoomFeatures(TRoom*);
+    void readRoomFeature(std::shared_ptr<TRoom>);
+    void readRoomFeatures(std::shared_ptr<TRoom>);
     void readEnvColor();
     void readEnvColors();
     void readArea();

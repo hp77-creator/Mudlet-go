@@ -56,7 +56,7 @@ void dlgRoomProperties::init(
     QHash<QString, int>& pSymbols,
     QHash<int, int>& pWeights,
     QHash<bool, int> lockStatus,
-    QSet<TRoom*>& pRooms)
+    QSet<std::shared_ptr<TRoom>>& pRooms)
 {
     // Configure name display
     if (usedNames.size() > 1) {
@@ -72,7 +72,7 @@ void dlgRoomProperties::init(
 
     // Configure symbols display
     mpSymbols = pSymbols;
-    mpRooms = pRooms;
+    mpRooms = std::move(pRooms);
     if (mpSymbols.isEmpty()) {
         // show simple text-entry box empty
         lineEdit_roomSymbol->setText(QString());
@@ -94,7 +94,7 @@ void dlgRoomProperties::init(
     initSymbolInstructions();
 
     // Configure icon display
-    auto pFirstRoom = *(pRooms.begin());
+    auto pFirstRoom = std::move(*(pRooms.begin()));
     selectedSymbolColor = pFirstRoom->mSymbolColor;
     if (pColors.size() == 1) {
         mRoomColor = mpHost->mpMap->getColor(pFirstRoom->getId());

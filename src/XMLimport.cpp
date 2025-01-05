@@ -455,7 +455,7 @@ void XMLimport::readRooms(QMultiHash<int, int>& areaRoomsHash)
     }
 }
 
-void XMLimport::readRoomFeatures(TRoom* pR)
+void XMLimport::readRoomFeatures(std::shared_ptr<TRoom> pR)
 {
     while (!atEnd()) {
         readNext();
@@ -472,7 +472,7 @@ void XMLimport::readRoomFeatures(TRoom* pR)
     }
 }
 
-void XMLimport::readRoomFeature(TRoom* pR)
+void XMLimport::readRoomFeature(std::shared_ptr<TRoom> pR)
 {
     if (Q_LIKELY(attributes().hasAttribute(qsl("type")))) {
         pR->userData.insert(qsl("feature-%1").arg(attributes().value(qsl("type"))), qsl("true"));
@@ -483,7 +483,7 @@ void XMLimport::readRoomFeature(TRoom* pR)
 // TRoomDB::addRoom(...)
 void XMLimport::readRoom(QMultiHash<int, int>& areamRoomMultiHash, unsigned int* roomCount)
 {
-    auto pT = new TRoom(mpHost->mpMap->mpRoomDB);
+    auto pT = std::make_shared<TRoom>(mpHost->mpMap->mpRoomDB);
 
     pT->id = attributes().value(qsl("id")).toString().toInt();
     pT->area = attributes().value(qsl("area")).toString().toInt();
@@ -586,11 +586,12 @@ void XMLimport::readRoom(QMultiHash<int, int>& areamRoomMultiHash, unsigned int*
         areamRoomMultiHash.insert(pT->area, pT->id);
         // We are loading a map so can make some optimisation by setting the
         // third argument as true:
-        mpHost->mpMap->mpRoomDB->addRoom(pT->id, pT, true);
+        mpHost->mpMap->mpRoomDB->addRoom(std::move(pT->id), pT, true);
         mMaxRoomId = qMax(mMaxRoomId, pT->id); // Wasn't used but now maintains max Room Id
-    } else {
-        delete pT;
     }
+    //  else {
+    //     // delete pT;
+    // }
 }
 
 void XMLimport::readUnknownMapElement()

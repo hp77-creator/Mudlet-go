@@ -262,7 +262,7 @@ void GLWidget::paintGL()
     int ox, oy, oz;
     if (!mShiftMode) {
         mRID = mpMap->mRoomIdHash.value(mpMap->mProfileName);
-        TRoom* pRID = mpMap->mpRoomDB->getRoom(mRID);
+        auto pRID = mpMap->mpRoomDB->getRoom(mRID);
         if (!pRID) {
             glClearDepth(1.0);
             glDepthFunc(GL_LESS);
@@ -430,7 +430,7 @@ void GLWidget::paintGL()
         }
         QSetIterator<int> itRoom(pArea->getAreaRooms());
         while (itRoom.hasNext()) {
-            TRoom* pR = mpMap->mpRoomDB->getRoom(itRoom.next());
+            auto pR = mpMap->mpRoomDB->getRoom(itRoom.next());
             if (!pR) {
                 continue;
             }
@@ -489,7 +489,7 @@ void GLWidget::paintGL()
                     if (k == -1) {
                         continue;
                     }
-                    TRoom* pExit = mpMap->mpRoomDB->getRoom(k);
+                    auto pExit = mpMap->mpRoomDB->getRoom(k);
                     if (!pExit) {
                         continue;
                     }
@@ -898,7 +898,7 @@ void GLWidget::paintGL()
                     if (k == -1) {
                         continue;
                     }
-                    TRoom* pExit = mpMap->mpRoomDB->getRoom(k);
+                    auto pExit = mpMap->mpRoomDB->getRoom(k);
                     if (!pExit) {
                         continue;
                     }
@@ -1324,7 +1324,7 @@ void GLWidget::paintGL()
         while (itRoom.hasNext()) {
             glDisable(GL_LIGHT1);
             const int currentRoomId = itRoom.next();
-            TRoom* pR = mpMap->mpRoomDB->getRoom(currentRoomId);
+            auto pR = mpMap->mpRoomDB->getRoom(currentRoomId);
             if (!pR) {
                 continue;
             }

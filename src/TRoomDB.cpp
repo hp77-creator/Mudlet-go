@@ -37,23 +37,26 @@ const QString ROOM_UI_NAMEPOS = qsl("room.ui_nameOffset");
 const QString ROOM_UI_NAMEFONT = qsl("room.ui_nameFont");
 const QString ROOM_UI_NAMESIZE = qsl("room.ui_nameSize");
 
+std::shared_ptr<TRoomDB> TRoomDB::createTRoomDB(TMap* map) {
+    auto roomDB = std::shared_ptr<TRoomDB>(new TRoomDB(map));
+    roomDB->addArea(-1, map->getDefaultAreaName());
+    return roomDB;
+}
+
 TRoomDB::TRoomDB(TMap* pMap)
 : mpMap(pMap)
 , mpTempRoomDeletionSet(nullptr)
 {
-    // Ensure the default area is created, the area/areaName items that get
-    // created here will get blown away when a map is loaded but that is expected...
-    addArea(-1, mpMap->getDefaultAreaName());
 }
 
-TRoom* TRoomDB::getRoom(int id)
+std::shared_ptr<TRoom> TRoomDB::getRoom(int id)
 {
     if (id < 0) {
         return nullptr;
     }
     const auto i = rooms.constFind(id);
     if (i != rooms.constEnd() && i.key() == id) {
-        return i.value();
+        return std::move(i.value());
     }
     return nullptr;
 }
@@ -61,10 +64,18 @@ TRoom* TRoomDB::getRoom(int id)
 bool TRoomDB::addRoom(int id)
 {
     if (!rooms.contains(id) && id > 0) {
-        rooms[id] = new TRoom(this);
-        rooms[id]->setId(id);
-        // there is no point in updating the entranceMap here, as the room has no exit information
-        return true;
+        try {
+            // Create a new TRoom with shared_ptr to this TRoomDB
+            auto pRoom = std::make_shared<TRoom>(shared_from_this());
+            rooms[id] = pRoom;
+            pRoom->setId(id);
+            // there is no point in updating the entranceMap here, as the room has no exit information
+            return true;
+        } catch (const std::bad_weak_ptr&) {
+            QString error = qsl("addRoom: TRoomDB shared_ptr not properly initialized for room id=%1").arg(id);
+            mpMap->logError(error);
+            return false;
+        }
     }
     if (id <= 0) {
         QString error = qsl("addRoom: illegal room id=%1. roomID must be > 0").arg(id);
@@ -73,12 +84,12 @@ bool TRoomDB::addRoom(int id)
     return false;
 }
 
-bool TRoomDB::addRoom(int id, TRoom* pR, bool isMapLoading)
+bool TRoomDB::addRoom(int id, std::shared_ptr<TRoom> pR, bool isMapLoading)
 {
     if (!rooms.contains(id) && id > 0 && pR) {
         rooms[id] = pR;
         pR->setId(id);
-        updateEntranceMap(pR, isMapLoading);
+        updateEntranceMap(std::move(pR), isMapLoading);
         return true;
     }
     return false;
@@ -121,11 +132,11 @@ void TRoomDB::deleteValuesFromEntranceMap(QSet<int>& valueSet)
 
 void TRoomDB::updateEntranceMap(int id)
 {
-    TRoom* pR = getRoom(id);
+    auto pR = getRoom(id);
     updateEntranceMap(pR);
 }
 
-void TRoomDB::updateEntranceMap(TRoom* pR, bool isMapLoading)
+void TRoomDB::updateEntranceMap(std::shared_ptr<TRoom> pR, bool isMapLoading)
 {
     static const bool showDebug = false; // Enable this at runtime (set a breakpoint on it) for debugging!
 
@@ -182,7 +193,7 @@ bool TRoomDB::__removeRoom(int id)
     // Gets set / reset by mpTempRoomDeletionSet being non-null, used to setup
     // _entranceMap the first time around for multi-room deletions
 
-    TRoom* pR = getRoom(id);
+    auto pR = getRoom(id);
     // This will FAIL during map deletion as TRoomDB::rooms has already been
     // zapped, so can use to skip everything...
     if (pR) {
@@ -214,7 +225,7 @@ bool TRoomDB::__removeRoom(int id)
                 ++i;
                 continue; // Bypass rooms we know are also to be deleted
             }
-            TRoom* r = getRoom(i.value());
+            auto r = getRoom(i.value());
             if (r) {
                 if (r->getNorth() == id) {
                     r->setNorth(-1);
@@ -294,8 +305,7 @@ bool TRoomDB::removeRoom(int id)
         if (mpMap->mTargetID == id) {
             mpMap->mTargetID = 0;
         }
-        TRoom* pR = getRoom(id);
-        delete pR;
+        auto pR = getRoom(id);
         return true;
     }
     return false;
@@ -316,10 +326,9 @@ void TRoomDB::removeRoom(QSet<int>& ids)
     quint64 const roomcount = mpTempRoomDeletionSet->size();
     while (!mpTempRoomDeletionSet->isEmpty()) {
         const int deleteRoomId = *(mpTempRoomDeletionSet->constBegin());
-        TRoom* pR = getRoom(deleteRoomId);
+        auto pR = getRoom(deleteRoomId);
         if (pR) {
             deletedRoomIds.insert(deleteRoomId);
-            delete pR;
         }
         mpTempRoomDeletionSet->remove(deleteRoomId);
     }
@@ -393,17 +402,17 @@ void TRoomDB::buildAreas()
 {
     QElapsedTimer timer;
     timer.start();
-    QHashIterator<int, TRoom*> it(rooms);
+    QHashIterator<int, std::shared_ptr<TRoom>> it(rooms);
     while (it.hasNext()) {
         it.next();
         const int id = it.key();
-        TRoom* pR = getRoom(id);
+        auto pR = getRoom(id);
         if (!pR) {
             continue;
         }
         TArea* pA = getArea(pR->getArea());
         if (!pA) {
-            areas[pR->getArea()] = new TArea(mpMap, this);
+            areas[pR->getArea()] = new TArea(mpMap, shared_from_this());
         }
     }
 
@@ -413,14 +422,14 @@ void TRoomDB::buildAreas()
         it2.next();
         const int id = it2.key();
         if (!areas.contains(id)) {
-            areas[id] = new TArea(mpMap, this);
+            areas[id] = new TArea(mpMap, shared_from_this());
         }
     }
     qDebug() << "TRoomDB::buildAreas() run time:" << timer.nsecsElapsed() * 1.0e-9 << "sec.";
 }
 
 
-const QList<TRoom*> TRoomDB::getRoomPtrList() const
+const QList<std::shared_ptr<TRoom>> TRoomDB::getRoomPtrList() const
 {
     return rooms.values();
 }
@@ -486,7 +495,7 @@ bool TRoomDB::setAreaName(int areaID, QString name)
 bool TRoomDB::addArea(int id)
 {
     if (!areas.contains(id)) {
-        areas[id] = new TArea(mpMap, this);
+        areas[id] = new TArea(mpMap, shared_from_this());
         if (!areaNamesMap.contains(id)) {
             // Must provide a name for this new area
             QString newAreaName = mpMap->getUnnamedAreaName();
@@ -617,10 +626,10 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
     QMultiHash<int, int> areaRoomMultiHash; // Key: areaId, ValueS: rooms that believe they belong there
 
     { // Block this code to limit scope of iterator
-        QMutableHashIterator<int, TRoom*> itRoom(rooms);
+        QMutableHashIterator<int, std::shared_ptr<TRoom>> itRoom(rooms);
         while (itRoom.hasNext()) {
             itRoom.next();
-            TRoom* pR = itRoom.value();
+            auto pR = itRoom.value();
             if (!pR) {
                 if (mudlet::self()->showMapAuditErrors()) {
                     const QString warnMsg = tr("[ WARN ]  - Problem with data structure associated with room id: %1 - that\n"
@@ -800,7 +809,7 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
             if (areas.contains(faultyAreaId)) {
                 pA = areas.take(faultyAreaId);
             } else {
-                pA = new TArea(mpMap, this);
+                pA = new TArea(mpMap, shared_from_this());
             }
             if (areaNamesMap.contains(faultyAreaId)) {
                 const QString areaName = areaNamesMap.value(faultyAreaId);
@@ -877,9 +886,9 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
             mpMap->postMessage(infoMsg);
         }
 
-        QSet<TRoom*> holdingSet;
+        QSet<std::shared_ptr<TRoom>> holdingSet;
         { // Block this code to limit scope of iterator
-            QMutableHashIterator<int, TRoom*> itRoom(rooms);
+            QMutableHashIterator<int, std::shared_ptr<TRoom>> itRoom(rooms);
             // Although this is "mutable" we can only changed the VALUE not the KEY
             // Also we cannot directly change the collection being iterated over -
             // though we can REMOVE items via the iterator - so pull the
@@ -888,7 +897,7 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
             // this iteration
             while (itRoom.hasNext()) {
                 itRoom.next();
-                TRoom* pR = itRoom.value();
+                auto pR = itRoom.value();
                 if (roomRemapping.contains(itRoom.key())) {
                     pR->userData.insert(qsl("audit.remapped_id"), QString::number(itRoom.key()));
                     pR->setId(roomRemapping.value(itRoom.key()));
@@ -899,9 +908,9 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
         }
 
         // Now stuff the modified values back in under the new key values
-        QSetIterator<TRoom*> itModifiedRoom(holdingSet);
+        QSetIterator<std::shared_ptr<TRoom>> itModifiedRoom(holdingSet);
         while (itModifiedRoom.hasNext()) {
-            TRoom* pR = itModifiedRoom.next();
+            auto pR = itModifiedRoom.next();
             const int newRoomId = pR->getId();
             rooms.insert(newRoomId, pR);
         }
@@ -916,10 +925,10 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
 
     // START OF TASK 6,7 & 9
     { // Block the following code to limit the scope of the itRoom iterator
-        QMutableHashIterator<int, TRoom*> itRoom(rooms);
+        QMutableHashIterator<int, std::shared_ptr<TRoom>> itRoom(rooms);
         while (itRoom.hasNext()) {
             itRoom.next();
-            TRoom* pR = itRoom.value();
+            auto pR = itRoom.value();
 
             // Purges any duplicates that a QList structure DOES permit, but a QSet does NOT:
             // Exit stubs:
@@ -1089,16 +1098,17 @@ void TRoomDB::clearMapDB()
 {
     QElapsedTimer timer;
     timer.start();
-    QList<TRoom*> const rPtrL = getRoomPtrList();
+    QList<std::shared_ptr<TRoom>> const rPtrL = getRoomPtrList();
     rooms.clear(); // Prevents any further use of TRoomDB::getRoom(int) !!!
     entranceMap.clear();
     areaNamesMap.clear();
     hashToRoomID.clear();
     roomIDToHash.clear();
-    for (auto room : rPtrL) {
-        delete room; // Uses the internally held value of the room Id
-                     // (TRoom::id) to call TRoomDB::__removeRoom(id)
-    }
+    // no need to delete explicitly
+    // for (auto room : rPtrL) {
+    //     delete room; // Uses the internally held value of the room Id
+    //                  // (TRoom::id) to call TRoomDB::__removeRoom(id)
+    // }
     //    assert(!rooms.size()); // Pointless as rooms.clear() will have achieved the test condition
 
     QList<TArea*> const areaList = getAreaPtrList();
@@ -1258,7 +1268,7 @@ void TRoomDB::restoreSingleArea(int areaID, TArea* pA)
     areas[areaID] = pA;
 }
 
-void TRoomDB::restoreSingleRoom(int i, TRoom* pT)
+void TRoomDB::restoreSingleRoom(int i,std::shared_ptr<TRoom> pT)
 {
     addRoom(i, pT, true);
 }

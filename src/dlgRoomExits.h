@@ -207,7 +207,7 @@ private:
 
     QPointer<Host> mpHost;
     QTreeWidgetItem* mpEditItem = nullptr;
-    TRoom* pR = nullptr;
+    std::shared_ptr<TRoom> pR;
     int mRoomID = 0;
     int mAreaID = 0;
     int mEditColumn = -1;

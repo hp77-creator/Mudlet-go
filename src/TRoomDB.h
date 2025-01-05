@@ -43,14 +43,15 @@ extern const QString ROOM_UI_NAMEPOS;
 extern const QString ROOM_UI_NAMEFONT;  // global only
 extern const QString ROOM_UI_NAMESIZE;  // TODO
 
-class TRoomDB
+class TRoomDB : public std::enable_shared_from_this<TRoomDB>
 {
     Q_DECLARE_TR_FUNCTIONS(TRoomDB) // Needed so we can use tr() even though TRoomDB is NOT derived from QObject
 
 public:
-    explicit TRoomDB(TMap*);
+    static std::shared_ptr<TRoomDB> createTRoomDB(TMap* map);
+    explicit TRoomDB(TMap* pMap);
 
-    TRoom* getRoom(int id);
+    std::shared_ptr<TRoom> getRoom(int id);
     TArea* getArea(int id);
     TArea* getRawArea(int, bool*);
     bool addRoom(int id);
@@ -66,14 +67,14 @@ public:
     bool addArea(int id, QString name);
     bool addArea(TArea*, const int, const QString&);
     bool setAreaName(int areaID, QString name);
-    const QList<TRoom*> getRoomPtrList() const;
+    const QList<std::shared_ptr<TRoom>> getRoomPtrList() const;
     const QList<TArea*> getAreaPtrList() const;
-    const QHash<int, TRoom*>& getRoomMap() const { return rooms; }
+    const QHash<int, std::shared_ptr<TRoom>>& getRoomMap() const { return rooms; }
     const QMap<int, TArea*>& getAreaMap() const { return areas; }
     QList<int> getRoomIDList();
     QList<int> getAreaIDList();
     const QMap<int, QString>& getAreaNamesMap() const { return areaNamesMap; }
-    void updateEntranceMap(TRoom*, bool isMapLoading = false);
+    void updateEntranceMap(std::shared_ptr<TRoom>, bool isMapLoading = false);
     void updateEntranceMap(int);
     const QMultiHash<int, int>& getEntranceHash() const { return entranceMap; }
     void deleteValuesFromEntranceMap(int);
@@ -82,11 +83,11 @@ public:
     void buildAreas();
     void clearMapDB();
     void auditRooms(QHash<int, int>&, QHash<int, int>&);
-    bool addRoom(int id, TRoom* pR, bool isMapLoading = false);
+    bool addRoom(int id, std::shared_ptr<TRoom> pR, bool isMapLoading = false);
     int getAreaID(TArea* pA);
     void restoreAreaMap(QDataStream&);
     void restoreSingleArea(int, TArea*);
-    void restoreSingleRoom(int, TRoom*);
+    void restoreSingleRoom(int, std::shared_ptr<TRoom>);
     qreal get2DMapZoom(const int areaId) const;
     bool set2DMapZoom(const int areaId, const qreal zoom) const;
 
@@ -107,7 +108,7 @@ private:
     bool __removeRoom(int id);
     void setAreaRooms(int, const QSet<int>&); // Used by XMLImport to fix rooms data after import
 
-    QHash<int, TRoom*> rooms;
+    QHash<int, std::shared_ptr<TRoom>> rooms;
     QMultiHash<int, int> entranceMap; // key is exit target, value is exit source
     QMap<int, TArea*> areas;
     QMap<int, QString> areaNamesMap;

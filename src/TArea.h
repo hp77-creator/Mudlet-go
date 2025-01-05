@@ -46,7 +46,7 @@ class TArea
     friend bool TMap::retrieveMapFileStats(QString, QString*, int*, int*, qsizetype*, qsizetype*);
 
 public:
-    TArea(TMap*, TRoomDB*);
+    TArea(TMap*, std::shared_ptr<TRoomDB>);
     ~TArea();
     int getAreaID();
     void addRoom(int id);
@@ -91,7 +91,7 @@ public:
     bool gridMode = false;
     bool isZone = false;
     int zoneAreaRef = 0;
-    TRoomDB* mpRoomDB = nullptr;
+    std::shared_ptr<TRoomDB> mpRoomDB = nullptr;
     bool mIsDirty = false;
     QMap<QString, QString> mUserData;
     QMap<int, TMapLabel> mMapLabels;

@@ -95,7 +95,7 @@ int TLuaInterpreter::getCustomLines(lua_State* L)
 {
     int roomID = getVerifiedInt(L, __func__, 1, "room id");
     Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomID);
     if (!pR) { //if the room doesn't exist return nil
         return warnArgumentValue(L, __func__, qsl("room %1 doesn't exist").arg(roomID));
     }
@@ -167,7 +167,7 @@ int TLuaInterpreter::getCustomLines1(lua_State* L)
 {
     int roomID = getVerifiedInt(L, __func__, 1, "room id");
     Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomID);
     if (!pR) { //if the room doesn't exist return nil
         return warnArgumentValue(L, __func__, qsl("room %1 doesn't exist").arg(roomID));
     }
@@ -246,7 +246,7 @@ int TLuaInterpreter::getExitWeights(lua_State* L)
 {
     int roomID = getVerifiedInt(L, __func__, 1, "roomID");
     Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomID);
     lua_newtable(L);
     if (pR) {
         QStringList keys = pR->getExitWeights().keys();
@@ -315,7 +315,7 @@ int TLuaInterpreter::addCustomLine(lua_State* L)
     QList<qreal> y;
     QList<int> z;
     const int id_from = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id_from);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id_from);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id_from));
     }
@@ -326,7 +326,7 @@ int TLuaInterpreter::addCustomLine(lua_State* L)
     }
     if (lua_isnumber(L, 2)) {
         id_to = static_cast<int>(lua_tointeger(L, 2));
-        TRoom* pR_to = host.mpMap->mpRoomDB->getRoom(id_to);
+        auto pR_to = host.mpMap->mpRoomDB->getRoom(id_to);
         if (!pR_to) {
             return warnArgumentValue(L, __func__, qsl("number %1 is not a valid target roomID").arg(id_to));
         }
@@ -609,13 +609,13 @@ int TLuaInterpreter::addSpecialExit(lua_State* L)
 {
     const Host& host = getHostFromLua(L);
     const int fromRoomID = getVerifiedInt(L, __func__, 1, "exit roomID");
-    TRoom* pR_from = host.mpMap->mpRoomDB->getRoom(fromRoomID);
+    auto pR_from = host.mpMap->mpRoomDB->getRoom(fromRoomID);
     if (!pR_from) {
         return warnArgumentValue(L, __func__, csmInvalidExitRoomID.arg(fromRoomID));
     }
 
     const int toRoomID = getVerifiedInt(L, __func__, 2, "entrance roomID");
-    TRoom* pR_to = host.mpMap->mpRoomDB->getRoom(toRoomID);
+    auto pR_to = host.mpMap->mpRoomDB->getRoom(toRoomID);
     if (!pR_to) {
         return warnArgumentValue(L, __func__, qsl("number %1 is not a valid entrance roomID").arg(toRoomID));
     }
@@ -650,7 +650,7 @@ int TLuaInterpreter::centerview(lua_State* L)
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (pR) {
         host.mpMap->mRoomIdHash[host.getName()] = roomId;
         host.mpMap->mNewMove = true;
@@ -781,7 +781,7 @@ int TLuaInterpreter::clearRoomUserData(lua_State* L)
     }
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -806,7 +806,7 @@ int TLuaInterpreter::clearRoomUserDataItem(lua_State* L)
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
     const QString key = getVerifiedString(L, __func__, 2, "key");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -832,7 +832,7 @@ int TLuaInterpreter::clearSpecialExits(lua_State* L)
 {
     const int id_from = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id_from);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id_from);
     if (pR) {
         pR->clearSpecialExits();
     }
@@ -1271,7 +1271,7 @@ int TLuaInterpreter::getAllRoomEntrances(lua_State* L)
     if (!host.mpMap || !host.mpMap->mpRoomDB) {
         return warnArgumentValue(L, __func__, "no map present or loaded");
     }
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1301,7 +1301,7 @@ int TLuaInterpreter::getAllRoomUserData(lua_State* L)
 
     QStringList keys;
     QStringList values;
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1524,7 +1524,7 @@ int TLuaInterpreter::getDoors(lua_State* L)
     }
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1549,7 +1549,7 @@ int TLuaInterpreter::getExitStubs(lua_State* L)
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1573,7 +1573,7 @@ int TLuaInterpreter::getExitStubs1(lua_State* L)
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1602,7 +1602,7 @@ int TLuaInterpreter::getExitStubsNames(lua_State* L)
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -1902,7 +1902,7 @@ int TLuaInterpreter::getRoomArea(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         lua_pushnil(L);
     } else {
@@ -1960,7 +1960,7 @@ int TLuaInterpreter::getRoomChar(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -1974,7 +1974,7 @@ int TLuaInterpreter::getRoomCharColor(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -1990,7 +1990,7 @@ int TLuaInterpreter::getRoomCoordinates(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         lua_pushnil(L);
         lua_pushnil(L);
@@ -2009,7 +2009,7 @@ int TLuaInterpreter::getRoomEnv(lua_State* L)
 {
     const int roomID = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomID);
     if (pR) {
         lua_pushnumber(L, pR->environment);
         return 1;
@@ -2023,7 +2023,7 @@ int TLuaInterpreter::getRoomExits(lua_State* L)
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         lua_newtable(L);
         if (pR->getNorth() != -1) {
@@ -2125,7 +2125,7 @@ int TLuaInterpreter::getRoomName(lua_State* L)
 
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -2138,7 +2138,7 @@ int TLuaInterpreter::getRooms(lua_State* L)
 {
     const Host& host = getHostFromLua(L);
     lua_newtable(L);
-    QHashIterator<int, TRoom*> it(host.mpMap->mpRoomDB->getRoomMap());
+    QHashIterator<int, std::shared_ptr<TRoom>> it(host.mpMap->mpRoomDB->getRoomMap());
     while (it.hasNext()) {
         it.next();
         lua_pushnumber(L, it.key());
@@ -2188,7 +2188,7 @@ int TLuaInterpreter::getRoomUserData(lua_State* L)
         isBackwardCompatibilityRequired = !getVerifiedBool(L, __func__, 3, "enableFullErrorReporting {default = false}", true);
     }
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         if (!isBackwardCompatibilityRequired) {
             return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
@@ -2219,7 +2219,7 @@ int TLuaInterpreter::getRoomUserDataKeys(lua_State* L)
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
 
     QStringList keys;
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -2244,7 +2244,7 @@ int TLuaInterpreter::getRoomWeight(lua_State* L)
         roomId = host.mpMap->mRoomIdHash.value(host.getName());
     }
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (pR) {
         lua_pushnumber(L, pR->getWeight());
         return 1;
@@ -2258,7 +2258,7 @@ int TLuaInterpreter::getSpecialExits(lua_State* L)
 {
     const Host& host = getHostFromLua(L);
     const int id_from = getVerifiedInt(L, __func__, 1, "exit roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id_from);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id_from);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id_from));
     }
@@ -2347,7 +2347,7 @@ int TLuaInterpreter::getSpecialExitsSwap(lua_State* L)
         return lua_error(L);
     }
     const int id_from = lua_tointeger(L, 1);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id_from);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id_from);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id_from));
     }
@@ -2398,7 +2398,7 @@ int TLuaInterpreter::hasExitLock(lua_State* L)
     }
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         lua_pushboolean(L, pR->hasExitLock(dir));
         return 1;
@@ -2417,7 +2417,7 @@ int TLuaInterpreter::hasSpecialExitLock(lua_State* L)
     }
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidExitRoomID.arg(fromRoomID));
     }
@@ -2445,7 +2445,7 @@ int TLuaInterpreter::highlightRoom(lua_State* L)
     const int alpha2 = getVerifiedInt(L, __func__, 10, "color2Alpha");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         auto fg = QColor(fgr, fgg, fgb, alpha1);
         auto bg = QColor(bgr, bgg, bgb, alpha2);
@@ -2552,7 +2552,7 @@ int TLuaInterpreter::lockExit(lua_State* L)
     const bool b = getVerifiedBool(L, __func__, 3, "lockIfTrue");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         pR->setExitLock(dir, b);
         host.mpMap->setUnsaved(__func__);
@@ -2568,7 +2568,7 @@ int TLuaInterpreter::lockRoom(lua_State* L)
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const bool b = getVerifiedBool(L, __func__, 2, "lockIfTrue");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         pR->isLocked = b;
         host.mpMap->setUnsaved(__func__);
@@ -2593,7 +2593,7 @@ int TLuaInterpreter::lockSpecialExit(lua_State* L)
     const bool b = getVerifiedBool(L, __func__, 4, "special exit lock state");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidExitRoomID.arg(fromRoomID));
     }
@@ -2717,7 +2717,7 @@ int TLuaInterpreter::removeCustomLine(lua_State* L)
 
     //args: room_id, direction
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -2814,7 +2814,7 @@ int TLuaInterpreter::removeSpecialExit(lua_State* L)
 {
     const Host& host = getHostFromLua(L);
     const int fromRoomID = getVerifiedInt(L, __func__, 1, "exit roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(fromRoomID);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidExitRoomID.arg(fromRoomID));
     }
@@ -2859,7 +2859,7 @@ int TLuaInterpreter::roomExists(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         lua_pushboolean(L, true);
     } else {
@@ -2873,7 +2873,7 @@ int TLuaInterpreter::roomLocked(lua_State* L)
 {
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         const bool r = pR->isLocked;
         lua_pushboolean(L, r);
@@ -3058,7 +3058,7 @@ int TLuaInterpreter::searchRoom(lua_State* L)
     }
 
     if (gotRoomID) {
-        TRoom* pR = host.mpMap->mpRoomDB->getRoom(room_id);
+        auto pR = host.mpMap->mpRoomDB->getRoom(room_id);
         if (pR) {
             lua_pushstring(L, pR->name.toUtf8().constData());
             return 1;
@@ -3068,10 +3068,10 @@ int TLuaInterpreter::searchRoom(lua_State* L)
             return 1;
         }
     } else {
-        QList<TRoom*> const roomList = host.mpMap->mpRoomDB->getRoomPtrList();
+        QList<std::shared_ptr<TRoom>> const roomList = host.mpMap->mpRoomDB->getRoomPtrList();
         lua_newtable(L);
         QList<int> roomIdsFound;
-        for (auto pR : roomList) {
+        for (const auto &pR : roomList) {
             if (!pR) {
                 continue;
             }
@@ -3087,7 +3087,7 @@ int TLuaInterpreter::searchRoom(lua_State* L)
         }
         if (!roomIdsFound.isEmpty()) {
             for (const int i : roomIdsFound) {
-                TRoom* pR = host.mpMap->mpRoomDB->getRoom(i);
+                auto pR = host.mpMap->mpRoomDB->getRoom(i);
                 // This test is to keep Coverity happy as it thinks pR could be
                 // a nullptr in some odd situation {CID 1415023}:
                 if (pR) {
@@ -3123,7 +3123,7 @@ int TLuaInterpreter::searchRoomUserData(lua_State* L)
 
     lua_newtable(L);
 
-    QHashIterator<int, TRoom*> itRoom(host.mpMap->mpRoomDB->getRoomMap());
+    QHashIterator<int, std::shared_ptr<TRoom>> itRoom(host.mpMap->mpRoomDB->getRoomMap());
     // For best performance do the three different types of action in three
     // different branches each with a loop - rather than choosing a branch
     // within a loop for each room
@@ -3333,7 +3333,7 @@ int TLuaInterpreter::setDoor(lua_State* L)
     }
 
     const int roomId = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -3431,7 +3431,7 @@ int TLuaInterpreter::setExitStub(lua_State* L)
     if (!host.mpMap) {
         return 0;
     }
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         lua_pushstring(L, "setExitStub: roomId doesn't exist");
         return lua_error(L);
@@ -3450,7 +3450,7 @@ int TLuaInterpreter::setExitWeight(lua_State* L)
 {
     const Host& host = getHostFromLua(L);
     const int roomID = getVerifiedInt(L, __func__, 1, "roomID");
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomID);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomID);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomID));
     }
@@ -3623,7 +3623,7 @@ int TLuaInterpreter::setRoomChar(lua_State* L)
     const QString symbol = getVerifiedString(L, __func__, 2, "room symbol");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -3663,7 +3663,7 @@ int TLuaInterpreter::setRoomCharColor(lua_State* L)
     }
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -3695,7 +3695,7 @@ int TLuaInterpreter::setRoomEnv(lua_State* L)
     const int env = getVerifiedInt(L, __func__, 2, "environmentID");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -3734,7 +3734,7 @@ int TLuaInterpreter::setRoomName(lua_State* L)
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
     const QString name = getVerifiedString(L, __func__, 2, "room name", true);
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -3758,7 +3758,7 @@ int TLuaInterpreter::setRoomUserData(lua_State* L)
     // Ideally should reject empty keys but this could break existing scripts so we can't
     const QString value = getVerifiedString(L, __func__, 3, "value");
 
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(roomId);
+    auto pR = host.mpMap->mpRoomDB->getRoom(roomId);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(roomId));
     }
@@ -3776,7 +3776,7 @@ int TLuaInterpreter::setRoomWeight(lua_State* L)
     const int w = getVerifiedInt(L, __func__, 2, "weight");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
@@ -3795,7 +3795,7 @@ int TLuaInterpreter::unHighlightRoom(lua_State* L)
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (pR) {
         pR->highlight = false;
         host.mpMap->update();
@@ -3812,7 +3812,7 @@ int TLuaInterpreter::unsetRoomCharColor(lua_State* L)
     const int id = getVerifiedInt(L, __func__, 1, "roomID");
 
     const Host& host = getHostFromLua(L);
-    TRoom* pR = host.mpMap->mpRoomDB->getRoom(id);
+    auto pR = host.mpMap->mpRoomDB->getRoom(id);
     if (!pR) {
         return warnArgumentValue(L, __func__, csmInvalidRoomID.arg(id));
     }
