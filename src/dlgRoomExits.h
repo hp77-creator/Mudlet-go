@@ -30,6 +30,7 @@
 #include <QPointer>
 #include <QSet>
 #include <QStyledItemDelegate>
+#include <memory>
 #include "post_guard.h"
 
 class QAction;

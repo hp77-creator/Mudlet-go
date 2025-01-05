@@ -60,6 +60,7 @@
 #endif
 
 #include <limits>
+#include <memory>
 #include <math.h>
 
 #include "pre_guard.h"

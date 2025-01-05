@@ -29,6 +29,7 @@
 #include <QColorDialog>
 #include <QMenu>
 #include <QPainter>
+#include <memory>
 #include "post_guard.h"
 
 

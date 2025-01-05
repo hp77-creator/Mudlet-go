@@ -26,6 +26,7 @@
 
 #include "pre_guard.h"
 #include "ui_room_properties.h"
+#include <memory>
 #include "post_guard.h"
 
 

@@ -44,6 +44,7 @@
 #include "pre_guard.h"
 #include <QtEvents>
 #include <QtUiTools>
+#include <memory>
 #include "post_guard.h"
 
 #include "mapInfoContributorManager.h"

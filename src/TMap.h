@@ -45,6 +45,7 @@
 #include <QVector3D>
 #include <stdlib.h>
 #include <optional>
+#include <memory>
 #include "post_guard.h"
 
 #define DIR_NORTH 1

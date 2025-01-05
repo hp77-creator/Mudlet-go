@@ -29,6 +29,7 @@
 #include "mudlet.h"
 
 #include "pre_guard.h"
+#include <memory>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>

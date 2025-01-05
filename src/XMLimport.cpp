@@ -33,6 +33,7 @@
 #include "mudlet.h"
 
 #include "pre_guard.h"
+#include <memory>
 #include <QBuffer>
 #include <QtMath>
 #include "post_guard.h"

@@ -28,6 +28,7 @@
 #include "mudlet.h"
 
 #include "pre_guard.h"
+#include <memory>
 #include <QElapsedTimer>
 #include <QRegularExpression>
 #include "post_guard.h"

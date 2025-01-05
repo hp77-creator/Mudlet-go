@@ -41,6 +41,7 @@
 #include <QProgressDialog>
 #include <QPainter>
 #include <QBuffer>
+#include <memory>
 #include "post_guard.h"
 
 

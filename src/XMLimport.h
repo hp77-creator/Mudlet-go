@@ -28,6 +28,7 @@
 #include "dlgTriggerEditor.h"
 
 #include "pre_guard.h"
+#include <memory>
 #include <QApplication>
 #include <QFile>
 #include <QMap>

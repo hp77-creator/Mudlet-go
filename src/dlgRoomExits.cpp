@@ -33,6 +33,7 @@
 
 #include "pre_guard.h"
 #include <QAction>
+#include <memory>
 #include "post_guard.h"
 
 // A template for tooltip HTML formatting so that we do not have

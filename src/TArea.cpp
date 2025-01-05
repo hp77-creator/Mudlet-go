@@ -32,6 +32,7 @@
 #include "pre_guard.h"
 #include <QBuffer>
 #include <QElapsedTimer>
+#include <memory>
 #include "post_guard.h"
 
 // Previous direction #defines here did not match the DIR_ defines in TRoom.h,

@@ -33,6 +33,7 @@
 #include <QMap>
 #include <QPair>
 #include <QVector3D>
+#include <memory>
 #include "post_guard.h"
 
 class TRoomDB;

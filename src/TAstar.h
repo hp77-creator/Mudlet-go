@@ -34,6 +34,7 @@
 #endif
 
 #include "pre_guard.h"
+#include <memory>
 #include <QDebug>
 #include <QString>
 #include "post_guard.h"

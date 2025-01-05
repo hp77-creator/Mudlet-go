@@ -25,6 +25,7 @@
 
 
 #include "pre_guard.h"
+#include <memory>
 #include <QApplication>
 #include <QColor>
 #include <QDebug>
