@@ -1585,7 +1585,7 @@ int TLuaInterpreter::showUnzipProgress(lua_State* L)
 int TLuaInterpreter::getMudletHomeDir(lua_State* L)
 {
     Host& host = getHostFromLua(L);
-    const QString nativeHomeDirectory = mudlet::getMudletPath(mudlet::profileHomePath, host.getName());
+    const QString nativeHomeDirectory = mudlet::getMudletPath(enums::profileHomePath, host.getName());
     lua_pushstring(L, nativeHomeDirectory.toUtf8().constData());
     return 1;
 }
@@ -2663,7 +2663,7 @@ int TLuaInterpreter::installPackage(lua_State* L)
 {
     const QString location = getVerifiedString(L, __func__, 1, "package location path and file name");
     Host& host = getHostFromLua(L);
-    if (auto [success, message] = host.installPackage(location, 0); !success) {
+    if (auto [success, message] = host.installPackage(location, enums::PackageModuleType::Package); !success) {
         return warnArgumentValue(L, __func__, message);
     }
     return 1;
@@ -2674,7 +2674,7 @@ int TLuaInterpreter::uninstallPackage(lua_State* L)
 {
     const QString packageName = getVerifiedString(L, __func__, 1, "package name");
     Host& host = getHostFromLua(L);
-    host.uninstallPackage(packageName, 0);
+    host.uninstallPackage(packageName, enums::PackageModuleType::Package);
     return 0;
 }
 
@@ -2685,7 +2685,7 @@ int TLuaInterpreter::installModule(lua_State* L)
     Host& host = getHostFromLua(L);
     const QString module = QDir::fromNativeSeparators(modName);
 
-    if (auto [success, message] = host.installPackage(module, 3); !success) {
+    if (auto [success, message] = host.installPackage(module, enums::PackageModuleType::ModuleFromScript); !success) {
         return warnArgumentValue(L, __func__, message);
     }
     auto moduleManager = host.mpModuleManager;
@@ -2701,7 +2701,7 @@ int TLuaInterpreter::uninstallModule(lua_State* L)
 {
     const QString module = getVerifiedString(L, __func__, 1, "module name");
     Host& host = getHostFromLua(L);
-    if (!host.uninstallPackage(module, 3)) {
+    if (!host.uninstallPackage(module, enums::PackageModuleType::ModuleFromScript)) {
         lua_pushboolean(L, false);
         return 1;
     }
@@ -5462,13 +5462,14 @@ void TLuaInterpreter::initLuaGlobals()
     lua_register(pGlobalLua, "holdingModifiers", TLuaInterpreter::holdingModifiers);
     lua_register(pGlobalLua, "getProfiles", TLuaInterpreter::getProfiles);
     lua_register(pGlobalLua, "loadProfile", TLuaInterpreter::loadProfile);
+    lua_register(pGlobalLua, "closeProfile", TLuaInterpreter::closeProfile);
     // PLACEMARKER: End of main Lua interpreter functions registration
     // check new functions against https://www.linguistic-antipatterns.com when creating them
 
     QStringList additionalLuaPaths;
     QStringList additionalCPaths;
     const auto appPath{QCoreApplication::applicationDirPath()};
-    const auto profilePath{mudlet::getMudletPath(mudlet::profileHomePath, hostName)};
+    const auto profilePath{mudlet::getMudletPath(enums::profileHomePath, hostName)};
 
     // Allow for modules or libraries placed in the profile root directory:
     additionalLuaPaths << qsl("%1/?.lua").arg(profilePath);
@@ -6629,8 +6630,35 @@ int TLuaInterpreter::getCharacterName(lua_State* L)
 // Documentation: https://wiki.mudlet.org/w/Manual:Miscellaneous_Functions#getProfileInformation
 int TLuaInterpreter::getProfileInformation(lua_State* L)
 {
+    QString info;
     Host& host = getHostFromLua(L);
-    QString info = host.readProfileData(qsl("description"));
+    const int params = lua_gettop(L);
+
+    switch (params) {
+        case 0:
+        {
+            info = host.readProfileData(qsl("description"));
+            break;
+        }
+        default:
+        {
+            QString profileName = getVerifiedString(L, __func__, 1, "profile name");
+            if (profileName.isEmpty()) {
+                lua_pushnil(L);
+                lua_pushstring(L, "getProfileInformation: profile name cannot be empty");
+                return 2;
+            }
+            if (!mudlet::self()->profileExists(profileName)) {
+                lua_pushnil(L);
+                lua_pushfstring(L, "getProfileInformation: profile '%s' does not exist", profileName.toUtf8().constData());
+                return 2;
+            } else {
+                info = mudlet::self()->readProfileData(profileName, qsl("description"));
+            }
+            break;
+        }
+    }
+
     lua_pushstring(L, info.toUtf8().constData());
     return 1;
 }
@@ -6638,33 +6666,65 @@ int TLuaInterpreter::getProfileInformation(lua_State* L)
 // Documentation: https://wiki.mudlet.org/w/Manual:Miscellaneous_Functions#setProfileInformation
 int TLuaInterpreter::setProfileInformation(lua_State* L)
 {
-    Host& host = getHostFromLua(L);
-    const QString text = getVerifiedString(L, __func__, 1, "text");
-    if (text.isEmpty()) {
-        return warnArgumentValue(L, __func__, "empty text supplied to setProfileInformation");
+    QString profileName = getHostFromLua(L).getName();
+    QString text;
+    const int params = lua_gettop(L);
+
+    switch (params) {
+        case 1:
+        {
+            text = getVerifiedString(L, __func__, 1, "text");
+            break;
+        }
+        default:
+        {
+            profileName = getVerifiedString(L, __func__, 1, "profile name");
+            text = getVerifiedString(L, __func__, 2, "text");
+            break;
+        }
     }
-    host.writeProfileData(qsl("description"), text);
-    lua_pushboolean(L, true);
-    return 1;
+
+    QPair<bool, QString> result = mudlet::self()->writeProfileData(profileName, qsl("description"), text);
+    int returnCode = 1;
+    lua_pushboolean(L, result.first);
+    if (!result.second.isEmpty()) {
+        lua_pushfstring(L, "setProfileInformation: %s does not exist", profileName.toUtf8().constData());
+        returnCode = 2;
+    }
+    return returnCode;
 }
 
 // Documentation: https://wiki.mudlet.org/w/Manual:Miscellaneous_Functions#clearProfileInformation
 int TLuaInterpreter::clearProfileInformation(lua_State* L)
 {
-    Host& host = getHostFromLua(L);
+    QString profileName = getHostFromLua(L).getName();
     QString desc = "";
+    const int params = lua_gettop(L);
+
+    switch (params) {
+    case 0:
+        break;
+    default:
+        profileName = getVerifiedString(L, __func__, 1, "profile name");
+        break;
+    }
 
     // if this is a default game, return to the orginal text
-    auto itDetails = TGameDetails::findGame(host.getName().toUtf8().constData());
+    auto itDetails = TGameDetails::findGame(profileName);
     if (itDetails != TGameDetails::scmDefaultGames.constEnd()) {
         if (!(*itDetails).description.isEmpty()) {
             desc = (*itDetails).description;
         }
     }
 
-    host.writeProfileData(qsl("description"), desc);
-    lua_pushboolean(L, true);
-    return 1;
+    QPair<bool, QString> result = mudlet::self()->writeProfileData(profileName, qsl("description"), desc);
+    int returnCode = 1;
+    lua_pushboolean(L, result.first);
+    if (!result.second.isEmpty()) {
+        lua_pushstring(L, "Profile not found");
+        returnCode = 2;
+    }
+    return returnCode;
 }
 
 // Internal function - helper for updateColorTable().
@@ -7133,6 +7193,13 @@ int TLuaInterpreter::setConfig(lua_State * L)
         }
         if (key == qsl("mapShowRoomBorders")) {
             host.mMapperShowRoomBorders = getVerifiedBool(L, __func__, 2, "value");
+            return success();
+        }
+        if (key == qsl("showUpperLowerLevels")) {
+            mudlet::self()->mDrawUpperLowerLevels = getVerifiedBool(L, __func__, 2, "value");;
+            if (host.mpMap->mpMapper->mp2dMap) {
+                host.mpMap->mpMapper->mp2dMap->update();
+            }
             return success();
         }
     }
