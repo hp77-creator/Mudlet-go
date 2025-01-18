@@ -558,7 +558,6 @@ TConsole::TConsole(Host* pH, const QString& name, const ConsoleType type, QWidge
     if (mType == MainConsole) {
         QTimer::singleShot(0, this, [this]() { 
             setProxyForFocus(mpCommandLine);
-            setF3SearchEnabled(mpHost->getF3SearchEnabled());
         });
     }
 }
@@ -1830,7 +1829,7 @@ void TConsole::focusOnSearchResultAndAnnounce(int searchX, int searchY) {
 
 void TConsole::slot_searchBufferUp()
 {
-    qDebug() << "Search buffer up called with text:" << mpBufferSearchBox->text();
+    if (mpHost->getF3SearchEnabled()) buffer.clearSearchHighlights();
     // The search term entry box is one widget that does not pass a mouse press
     // event up to the main TConsole and thus does not cause the focus to shift
     // to the profile's tab when in multi-view mode - so add a call to make that
@@ -1875,6 +1874,7 @@ void TConsole::slot_searchBufferUp()
 
 void TConsole::slot_searchBufferDown()
 {
+    if (mpHost->getF3SearchEnabled()) buffer.clearSearchHighlights();
     if (mSearchQuery != mpBufferSearchBox->text()) {
         mSearchQuery = mpBufferSearchBox->text();
         buffer.clearSearchHighlights();
