@@ -139,7 +139,7 @@ bool TMap::setRoomArea(int id, int area, bool deferAreaRecalculations)
         return false;
     }
 
-    TArea* pA = mpRoomDB->getArea(area);
+    auto pA = mpRoomDB->getArea(area);
     if (!pA) {
         // Uh oh, the area doesn't seem to exist as a TArea instance, let's check
         // to see if it exists as a name only:
@@ -230,7 +230,7 @@ QString TMap::connectExitStubByDirection(const int fromRoomId, const int dirType
     int dx = 0;
     int dy = 0;
     int dz = 0;
-    TArea* pA = mpRoomDB->getArea(area);
+    auto pA = mpRoomDB->getArea(area);
     if (!pA) {
         return qsl("fromID (%1) room does not have an area").arg(fromRoomId);
     }
@@ -506,7 +506,7 @@ bool TMap::setExit(int from, int to, int dir)
     }
     pR->setExitStub(dir, false);
     mMapGraphNeedsUpdate = true;
-    TArea* pA = mpRoomDB->getArea(pR->getArea());
+    auto pA = mpRoomDB->getArea(pR->getArea());
     if (!pA) {
         return false;
     }
@@ -537,11 +537,11 @@ void TMap::audit()
         // convert old style labels, wasn't made version conditional in past but
         // not likely to be an issue in recent map file format versions (say 16+)
 
-        QMapIterator<int, TArea*> itArea(mpRoomDB->getAreaMap());
+        QMapIterator<int, std::shared_ptr<TArea>> itArea(mpRoomDB->getAreaMap());
         while (itArea.hasNext()) {
             itArea.next();
             const int areaID = itArea.key();
-            TArea* pArea = mpRoomDB->getArea(areaID);
+            auto pArea = mpRoomDB->getArea(areaID);
             if (!pArea->mMapLabels.isEmpty()) {
                 QList<int> const labelIDList = pArea->mMapLabels.keys();
                 for (const int& i : labelIDList) {
@@ -584,7 +584,7 @@ void TMap::audit()
     // all the (TArea *)->areaExits() that were built wrongly previously,
     // calcSpan() may not be required to be done here and now but it is in my
     // sights as a target for revision in the future. Slysven
-    QMapIterator<int, TArea*> itArea(mpRoomDB->getAreaMap());
+    QMapIterator<int, std::shared_ptr<TArea>> itArea(mpRoomDB->getAreaMap());
     while (itArea.hasNext()) {
         itArea.next();
         itArea.value()->clean();
@@ -615,7 +615,7 @@ QList<int> TMap::detectRoomCollisions(int id)
     const int x = pR->x();
     const int y = pR->y();
     const int z = pR->z();
-    TArea* pA = mpRoomDB->getArea(area);
+    auto pA = mpRoomDB->getArea(area);
     if (!pA) {
         return collList;
     }
@@ -1172,11 +1172,11 @@ bool TMap::serialize(QDataStream& ofs, int saveVersion)
     ofs << static_cast<qint32>(mpRoomDB->getAreaMap().size());
 
     // serialize area table
-    QMapIterator<int, TArea*> itAreaList(mpRoomDB->getAreaMap());
+    QMapIterator<int, std::shared_ptr<TArea>> itAreaList(mpRoomDB->getAreaMap());
     while (itAreaList.hasNext()) {
         itAreaList.next();
         const int areaID = itAreaList.key();
-        TArea* pA = itAreaList.value();
+        auto pA = itAreaList.value();
         ofs << areaID;
         if (mSaveVersion >= 18) {
             ofs << pA->rooms;
@@ -1245,9 +1245,9 @@ bool TMap::serialize(QDataStream& ofs, int saveVersion)
         // Before version 21 the map labels were stored within this class:
         // First we have the number of labels per area - we need this as there
         // is no delimiter between each area's map labels
-        QMap<int, TArea*> areasWithPermanentLabels;
+        QMap<int, std::shared_ptr<TArea>> areasWithPermanentLabels;
         // Need to count the areas that have mapLabels:
-        QMapIterator<int, TArea*> itArea(mpRoomDB->getAreaMap());
+        QMapIterator<int, std::shared_ptr<TArea>> itArea(mpRoomDB->getAreaMap());
         while (itArea.hasNext()){
             // Now we have temporary labels we need to identify areas with
             // permanent ones:
@@ -1258,7 +1258,7 @@ bool TMap::serialize(QDataStream& ofs, int saveVersion)
             }
         }
         ofs << static_cast<qint32>(areasWithPermanentLabels.count());
-        QMapIterator<int, TArea*> itAreaWithLabels(areasWithPermanentLabels);
+        QMapIterator<int, std::shared_ptr<TArea>> itAreaWithLabels(areasWithPermanentLabels);
         while (itAreaWithLabels.hasNext()) {
             itAreaWithLabels.next();
             auto pArea = itAreaWithLabels.value();
@@ -1719,7 +1719,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
             ifs >> areaSize;
             // restore area table
             for (int i = 0; i < areaSize; i++) {
-                auto pA = new TArea(this, mpRoomDB);
+                auto pA = std::make_shared<TArea>(this, mpRoomDB);
                 int areaID = 0;
                 ifs >> areaID;
                 if (mVersion >= 18) {
@@ -1791,7 +1791,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
         }
 
         if (!mpRoomDB->getAreaMap().keys().contains(-1)) {
-            auto pDefaultA = new TArea(this, mpRoomDB);
+            auto pDefaultA = std::make_shared<TArea>(this, mpRoomDB);
             mpRoomDB->restoreSingleArea(-1, pDefaultA);
             const QString defaultAreaInsertionMsg = tr("[ INFO ]  - Default (reset) area (for rooms that have not been assigned to an\n"
                                                  "area) not found, adding reserved -1 id.");
@@ -3233,13 +3233,12 @@ std::pair<bool, QString> TMap::readJsonMapFile(const QString& source, const bool
     bool abort = false;
     for (int i = 0, total = mapObj.value(QLatin1String("areas")).toArray().count(); i < total; ++i) {
         std::shared_ptr<TRoomDB> pRoomDBPtr(pNewRoomDB);
-        TArea* pArea = new TArea(this, pRoomDBPtr);
+        std::shared_ptr<TArea> pArea = std::make_shared<TArea>(this, pRoomDBPtr);
         auto [id, name] = pArea->readJsonArea(mapObj.value(QLatin1String("areas")).toArray(), i);
         ++mProgressDialogAreasCount;
         if (incrementJsonProgressDialog(false, true, 0)) {
             if (allowUserCancellation) {
                 abort = true;
-                delete pArea;
             }
             break;
         }

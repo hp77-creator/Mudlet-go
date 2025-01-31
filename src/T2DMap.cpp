@@ -1278,7 +1278,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
         mMapCenterZ = pPlayerRoom->z();
     }
 
-    TArea* pDrawnArea = mpMap->mpRoomDB->getArea(mAreaID);
+    auto pDrawnArea = mpMap->mpRoomDB->getArea(mAreaID);
     if (!pDrawnArea) {
         return;
     }
@@ -1422,7 +1422,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
         // draw room on lower z-levels
         while (itRoom.hasNext()) {
             const int currentAreaRoom = itRoom.next();
-            TRoom* room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
+            auto room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
             if (!room) {
                 continue;
             }
@@ -1452,7 +1452,7 @@ void T2DMap::paintEvent(QPaintEvent* e)
         // draw rooms on upper z-levels
         while (itRoom.hasNext()) {
             const int currentAreaRoom = itRoom.next();
-            TRoom* room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
+            auto room = mpMap->mpRoomDB->getRoom(currentAreaRoom);
             if (!room) {
                 continue;
             }
@@ -1758,7 +1758,7 @@ void T2DMap::drawDoor(QPainter& painter, const TRoom& room, const QString& dirKe
     painter.restore();
 }
 
-void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, QList<int>& oneWayExits, const TArea* pArea, int zLevel, float exitWidth, QMap<int, QPointF>& areaExitsMap)
+void T2DMap::paintRoomExits(QPainter& painter, QPen& pen, QList<int>& exitList, QList<int>& oneWayExits, const std::shared_ptr<TArea> pArea, int zLevel, float exitWidth, QMap<int, QPointF>& areaExitsMap)
 {
     const float exitArrowScale = (mLargeAreaExitArrows ? 2.0f : 1.0f);
     const float widgetWidth = width();
@@ -2554,7 +2554,7 @@ void T2DMap::createLabel(QRectF labelRectangle)
     mpDlgMapLabel->updated();
 }
 
-void T2DMap::updateMapLabel(QRectF labelRectangle, int labelId, TArea* pArea)
+void T2DMap::updateMapLabel(QRectF labelRectangle, int labelId, std::shared_ptr<TArea> pArea)
 {
     TMapLabel label;
     QFont font;
@@ -3103,7 +3103,7 @@ void T2DMap::mousePressEvent(QMouseEvent* event)
         // check click on custom exit lines (not in viewOnly mode)
         if (mMultiSelectionSet.isEmpty() && !mMapViewOnly) {
             // But NOT if got one or more rooms already selected!
-            TArea* pA = mpMap->mpRoomDB->getArea(mAreaID);
+            auto pA = mpMap->mpRoomDB->getArea(mAreaID);
             if (pA) {
                 const float mx = (event->pos().x() / mRoomWidth) + mMapCenterX - (xspan / 2.0);
                 const float my = (yspan / 2.0) - (event->pos().y() / mRoomHeight) - mMapCenterY;
@@ -3196,7 +3196,7 @@ void T2DMap::mousePressEvent(QMouseEvent* event)
             if (!mpMap->mpRoomDB->getRoom(mRoomID)) {
                 return;
             }
-            TArea* pArea = mpMap->mpRoomDB->getArea(mAreaID);
+            auto pArea = mpMap->mpRoomDB->getArea(mAreaID);
             if (!pArea) {
                 return;
             }
@@ -3631,7 +3631,7 @@ void T2DMap::slot_deleteCustomExitLine()
             repaint();
             mpMap->setUnsaved(__func__);
             room->calcRoomDimensions();
-            TArea* area = mpMap->mpRoomDB->getArea(room->getArea());
+            auto area = mpMap->mpRoomDB->getArea(room->getArea());
             if (area) {
                 area->calcSpan();
             }
@@ -4343,10 +4343,10 @@ void T2DMap::slot_setArea()
                     // Failed on the last of multiple room area move so do the missed
                     // out recalculations for the dirtied areas
                     auto areaPtrsList{mpMap->mpRoomDB->getAreaPtrList()};
-                    QSet<TArea*> const areaPtrsSet{areaPtrsList.begin(), areaPtrsList.end()};
-                    QSetIterator<TArea*> itpArea{areaPtrsSet};
+                    QSet<std::shared_ptr<TArea>> const areaPtrsSet{areaPtrsList.begin(), areaPtrsList.end()};
+                    QSetIterator<std::shared_ptr<TArea>> itpArea{areaPtrsSet};
                     while (itpArea.hasNext()) {
-                        TArea* pArea = itpArea.next();
+                        auto pArea = itpArea.next();
                         pArea->clean();
                     }
                 }
@@ -4468,7 +4468,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
         if (!mpMap->mpRoomDB->getRoom(mRoomID)) {
             return;
         }
-        TArea* pArea = mpMap->mpRoomDB->getArea(mAreaID);
+        auto pArea = mpMap->mpRoomDB->getArea(mAreaID);
         if (!pArea) {
             return;
         }
@@ -4566,7 +4566,7 @@ void T2DMap::mouseMoveEvent(QMouseEvent* event)
         if (!mpMap->mpRoomDB->getRoom(mRoomID)) {
             return;
         }
-        TArea* pArea = mpMap->mpRoomDB->getArea(mAreaID);
+        auto pArea = mpMap->mpRoomDB->getArea(mAreaID);
         if (!pArea) {
             return;
         }
@@ -4757,7 +4757,7 @@ std::pair<bool, QString> T2DMap::setMapZoom(const qreal zoom, const int areaId)
         return {false, qsl("zoom %1 is invalid, it must be at least %2").arg(QString::number(zoom, 'g', 16), QString::number(csmMinXYZoom, 'g', 16))};
     }
 
-    TArea* pArea = nullptr;
+    std::shared_ptr<TArea> pArea;
     auto areaToChangeId = areaId ? areaId : mAreaID;
     // An area has been supplied - though it could be the current one:
     pArea = mpMap->mpRoomDB->getArea(areaToChangeId);

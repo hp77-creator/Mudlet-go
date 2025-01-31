@@ -38,7 +38,7 @@
 
 class TRoomDB;
 
-class TArea
+class TArea : public std::enable_shared_from_this<TArea>
 {
     Q_DECLARE_TR_FUNCTIONS(TArea) // Needed so we can use tr() even though TArea is NOT derived from QObject
 
@@ -47,8 +47,11 @@ class TArea
     friend bool TMap::retrieveMapFileStats(QString, QString*, int*, int*, qsizetype*, qsizetype*);
 
 public:
+    static std::shared_ptr<TArea> create(TMap* map, std::shared_ptr<TRoomDB> roomDB){
+        return std::shared_ptr<TArea>(new TArea(map, roomDB));
+    }
     TArea(TMap*, std::shared_ptr<TRoomDB>);
-    ~TArea();
+    virtual ~TArea();
     int getAreaID();
     void addRoom(int id);
     const QSet<int>& getAreaRooms() const { return rooms; }
@@ -134,5 +137,7 @@ private:
     // be applied in the constructor initialisation list:
     qreal mLast2DMapZoom = 0.0;
 };
+
+uint qHash(const std::shared_ptr<TArea>& key, uint seed = 0) noexcept;
 
 #endif // MUDLET_TAREA_H

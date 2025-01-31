@@ -53,8 +53,8 @@ public:
     explicit TRoomDB(TMap* pMap);
 
     std::shared_ptr<TRoom> getRoom(int id);
-    TArea* getArea(int id);
-    TArea* getRawArea(int, bool*);
+    std::shared_ptr<TArea> getArea(int id);
+    std::shared_ptr<TArea> getRawArea(int, bool*);
     bool addRoom(int id);
     int size() const { return rooms.size(); }
     bool isEmpty() const { return rooms.isEmpty(); }
@@ -62,16 +62,16 @@ public:
     void removeRoom(QSet<int>&);
     bool removeArea(int id);
     bool removeArea(const QString& name);
-    void removeArea(TArea*);
+    void removeArea(std::shared_ptr<TArea>);
     bool addArea(int id);
     int addArea(QString name);
     bool addArea(int id, QString name);
-    bool addArea(TArea*, const int, const QString&);
+    bool addArea(std::shared_ptr<TArea>, const int, const QString&);
     bool setAreaName(int areaID, QString name);
     const QList<std::shared_ptr<TRoom>> getRoomPtrList() const;
-    const QList<TArea*> getAreaPtrList() const;
+    const QList<std::shared_ptr<TArea>> getAreaPtrList() const;
     const QHash<int, std::shared_ptr<TRoom>>& getRoomMap() const { return rooms; }
-    const QMap<int, TArea*>& getAreaMap() const { return areas; }
+    const QMap<int, std::shared_ptr<TArea>>& getAreaMap() const { return areas; }
     QList<int> getRoomIDList();
     QList<int> getAreaIDList();
     const QMap<int, QString>& getAreaNamesMap() const { return areaNamesMap; }
@@ -85,9 +85,9 @@ public:
     void clearMapDB();
     void auditRooms(QHash<int, int>&, QHash<int, int>&);
     bool addRoom(int id, std::shared_ptr<TRoom> pR, bool isMapLoading = false);
-    int getAreaID(TArea* pA);
+    int getAreaID(std::shared_ptr<TArea> pA);
     void restoreAreaMap(QDataStream&);
-    void restoreSingleArea(int, TArea*);
+    void restoreSingleArea(int, std::shared_ptr<TArea>);
     void restoreSingleRoom(int, std::shared_ptr<TRoom>);
     qreal get2DMapZoom(const int areaId) const;
     bool set2DMapZoom(const int areaId, const qreal zoom) const;
@@ -111,7 +111,7 @@ private:
 
     QHash<int, std::shared_ptr<TRoom>> rooms;
     QMultiHash<int, int> entranceMap; // key is exit target, value is exit source
-    QMap<int, TArea*> areas;
+    QMap<int, std::shared_ptr<TArea>> areas;
     QMap<int, QString> areaNamesMap;
     TMap* mpMap;
     QSet<int>* mpTempRoomDeletionSet; // Used during bulk room deletion

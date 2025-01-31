@@ -937,7 +937,7 @@ void dlgRoomExits::save()
         pR->setDoor(qsl("out"), -2 - doortype_out->checkedId());
     }
 
-    TArea* pA = mpHost->mpMap->mpRoomDB->getArea(pR->getArea());
+    auto pA = mpHost->mpMap->mpRoomDB->getArea(pR->getArea());
     if (pA) {
         pA->determineAreaExitsOfRoom(pR->getId());
     }

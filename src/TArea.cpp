@@ -59,7 +59,7 @@ TArea::TArea(TMap* pMap, std::shared_ptr<TRoomDB> pRDB)
 TArea::~TArea()
 {
     if (mpRoomDB) {
-        mpRoomDB->removeArea(this);
+        mpRoomDB->removeArea(shared_from_this());
     } else {
         qDebug() << "ERROR: In TArea::~TArea(), instance has no mpRoomDB";
     }
@@ -68,7 +68,7 @@ TArea::~TArea()
 int TArea::getAreaID()
 {
     if (mpRoomDB) {
-        return mpRoomDB->getAreaID(this);
+        return mpRoomDB->getAreaID(std::const_pointer_cast<TArea>(shared_from_this()));
     } else {
         qDebug() << "ERROR: TArea::getAreaID() instance has no mpRoomDB, returning -1 as ID";
         return -1;
@@ -563,7 +563,7 @@ const QMultiMap<int, QPair<QString, int>> TArea::getAreaExitRoomData() const
                 exitData.first = itSpecialExit.key();
                 exitData.second = itSpecialExit.value();
                 auto pToRoom = mpRoomDB->getRoom(exitData.second);
-                if (pToRoom && mpRoomDB->getArea(pToRoom->getArea()) != this) {
+                if (pToRoom && mpRoomDB->getArea(pToRoom->getArea()) != shared_from_this()) {
                     // Note that pToRoom->getArea() is misnamed, should be getAreaId() !
                     if (!exitData.first.isEmpty()) {
                         results.insert(fromRoomId, exitData);
@@ -588,7 +588,7 @@ int TArea::createLabelId() const
 void TArea::writeJsonArea(QJsonArray& array) const
 {
     QJsonObject areaObj;
-    const int id = mpRoomDB->getAreaID(const_cast<TArea*>(this));
+    const int id = mpRoomDB->getAreaID(std::const_pointer_cast<TArea>(shared_from_this()));
     areaObj.insert(QLatin1String("id"), static_cast<double>(id));
 
     const QJsonValue areaNameValue{mpRoomDB->getAreaNamesMap().value(id)};
@@ -990,4 +990,8 @@ void TArea::clean()
         calcSpan();
         mIsDirty = false;
     }
+}
+
+uint qHash(const std::shared_ptr<TArea>& key, uint seed) noexcept {
+    return key ? qHash(key->getAreaID(), seed) : 0;
 }

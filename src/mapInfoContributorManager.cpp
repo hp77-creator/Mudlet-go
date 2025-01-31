@@ -112,7 +112,7 @@ MapInfoProperties MapInfoContributorManager::fullInfo(int roomID, int selectionS
 
     auto room = mpHost->mpMap->mpRoomDB->getRoom(roomID);
     if (room) {
-        TArea* area = mpHost->mpMap->mpRoomDB->getArea(areaId);
+        auto area = mpHost->mpMap->mpRoomDB->getArea(areaId);
         const QString areaName = mpHost->mpMap->mpRoomDB->getAreaNamesMap().value(areaId);
         if (area) {
             infoText = qsl("%1\n").arg(

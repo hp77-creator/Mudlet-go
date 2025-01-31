@@ -275,7 +275,7 @@ bool TRoomDB::__removeRoom(int id)
             hashToRoomID.remove(hash);
         }
         const int areaID = pR->getArea();
-        TArea* pA = getArea(areaID);
+        auto pA = getArea(areaID);
         if (pA) {
             pA->removeRoom(id);
         }
@@ -344,7 +344,7 @@ void TRoomDB::removeRoom(QSet<int>& ids)
 
 bool TRoomDB::removeArea(int id)
 {
-    if (TArea* pA = areas.value(id)) {
+    if (auto pA = areas.value(id)) {
         if (!rooms.isEmpty()) {
             // During map deletion rooms will already
             // have been cleared so this would not
@@ -377,7 +377,7 @@ bool TRoomDB::removeArea(const QString& name)
     }
 }
 
-void TRoomDB::removeArea(TArea* pA)
+void TRoomDB::removeArea(std::shared_ptr<TArea> pA)
 {
     if (!pA) {
         qWarning() << "TRoomDB::removeArea(TArea *) Warning - attempt to remove an area with a NULL TArea pointer!";
@@ -394,7 +394,7 @@ void TRoomDB::removeArea(TArea* pA)
     }
 }
 
-int TRoomDB::getAreaID(TArea* pA)
+int TRoomDB::getAreaID(std::shared_ptr<TArea> pA)
 {
     return areas.key(pA);
 }
@@ -411,9 +411,9 @@ void TRoomDB::buildAreas()
         if (!pR) {
             continue;
         }
-        TArea* pA = getArea(pR->getArea());
+        auto pA = getArea(pR->getArea());
         if (!pA) {
-            areas[pR->getArea()] = new TArea(mpMap, shared_from_this());
+            areas[pR->getArea()] = std::make_shared<TArea>(mpMap, shared_from_this());
         }
     }
 
@@ -423,7 +423,7 @@ void TRoomDB::buildAreas()
         it2.next();
         const int id = it2.key();
         if (!areas.contains(id)) {
-            areas[id] = new TArea(mpMap, shared_from_this());
+            areas[id] = std::make_shared<TArea>(mpMap, shared_from_this());
         }
     }
     qDebug() << "TRoomDB::buildAreas() run time:" << timer.nsecsElapsed() * 1.0e-9 << "sec.";
@@ -440,7 +440,7 @@ QList<int> TRoomDB::getRoomIDList()
     return rooms.keys();
 }
 
-TArea* TRoomDB::getArea(int id)
+std::shared_ptr<TArea> TRoomDB::getArea(int id)
 {
     //area id of -1 is a room in the "void", 0 is a failure
     if (id > 0 || id == -1) {
@@ -451,7 +451,7 @@ TArea* TRoomDB::getArea(int id)
 }
 
 // Used by TMap::audit() - can detect and return areas with normally invalids Id (less than -1 or zero)!
-TArea* TRoomDB::getRawArea(int id, bool* isValid = nullptr)
+std::shared_ptr<TArea> TRoomDB::getRawArea(int id, bool* isValid = nullptr)
 {
     if (areas.contains(id)) {
         if (isValid) {
@@ -496,7 +496,7 @@ bool TRoomDB::setAreaName(int areaID, QString name)
 bool TRoomDB::addArea(int id)
 {
     if (!areas.contains(id)) {
-        areas[id] = new TArea(mpMap, shared_from_this());
+        areas[id] = std::make_shared<TArea>(mpMap, shared_from_this());
         if (!areaNamesMap.contains(id)) {
             // Must provide a name for this new area
             QString newAreaName = mpMap->getUnnamedAreaName();
@@ -571,7 +571,7 @@ bool TRoomDB::addArea(int id, QString name)
 }
 
 // Used by TMap::readJsonMapFile(...) to insert an already populated area in:
-bool TRoomDB::addArea(TArea* pA, const int id, const QString& name)
+bool TRoomDB::addArea(std::shared_ptr<TArea> pA, const int id, const QString& name)
 {
     if (name.isEmpty()) {
         return false;
@@ -584,7 +584,7 @@ bool TRoomDB::addArea(TArea* pA, const int id, const QString& name)
     return true;
 }
 
-const QList<TArea*> TRoomDB::getAreaPtrList() const
+const QList<std::shared_ptr<TArea>> TRoomDB::getAreaPtrList() const
 {
     return areas.values();
 }
@@ -700,7 +700,7 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
 
     // START OF TASK 4
     // Check for any problem Id in original areas
-    QMapIterator<int, TArea*> itArea(areas);
+    QMapIterator<int, std::shared_ptr<TArea>> itArea(areas);
     while (itArea.hasNext()) {
         itArea.next();
         const int areaId = itArea.key();
@@ -806,11 +806,11 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
             mpMap->appendAreaErrorMsg(faultyAreaId, tr("[ INFO ]  - The area with this bad id was renumbered to: %1.").arg(replacementAreaId), true);
             mpMap->appendAreaErrorMsg(replacementAreaId, tr("[ INFO ]  - This area was renumbered from the bad id: %1.").arg(faultyAreaId), true);
 
-            TArea* pA = nullptr;
+            std::shared_ptr<TArea> pA;
             if (areas.contains(faultyAreaId)) {
                 pA = areas.take(faultyAreaId);
             } else {
-                pA = new TArea(mpMap, shared_from_this());
+                pA = std::make_shared<TArea>(mpMap, shared_from_this());
             }
             if (areaNamesMap.contains(faultyAreaId)) {
                 const QString areaName = areaNamesMap.value(faultyAreaId);
@@ -971,10 +971,10 @@ void TRoomDB::auditRooms(QHash<int, int>& roomRemapping, QHash<int, int>& areaRe
 
     // START TASK 8
     {
-        QMapIterator<int, TArea*> itArea(areas);
+        QMapIterator<int, std::shared_ptr<TArea>> itArea(areas);
         while (itArea.hasNext()) {
             itArea.next();
-            TArea* pA = itArea.value();
+            auto pA = itArea.value();
             QSet<int> replacementRoomsSet;
             { // Block code to limit scope of iterator, find and pull out renumbered rooms
                 QMutableSetIterator<int> itAreaRoom(pA->rooms);
@@ -1112,10 +1112,11 @@ void TRoomDB::clearMapDB()
     // }
     //    assert(!rooms.size()); // Pointless as rooms.clear() will have achieved the test condition
 
-    QList<TArea*> const areaList = getAreaPtrList();
-    for (auto area : areaList) {
-        delete area;
-    }
+    QList<std::shared_ptr<TArea>> const areaList = getAreaPtrList();
+    // This is not required now
+    // for (auto area : areaList) {
+    //     delete area;
+    // }
     assert(areas.empty());
     // Must now reinsert areaId -1 name = "Default Area"
     addArea(-1, mpMap->getDefaultAreaName());
@@ -1264,7 +1265,7 @@ void TRoomDB::restoreAreaMap(QDataStream& ifs)
     }
 }
 
-void TRoomDB::restoreSingleArea(int areaID, TArea* pA)
+void TRoomDB::restoreSingleArea(int areaID, std::shared_ptr<TArea> pA)
 {
     areas[areaID] = pA;
 }
@@ -1277,7 +1278,7 @@ void TRoomDB::restoreSingleRoom(int i,std::shared_ptr<TRoom> pT)
 // Used by XMLimport to fix TArea::rooms data after import
 void TRoomDB::setAreaRooms(const int areaId, const QSet<int>& roomIds)
 {
-    TArea* pA = areas.value(areaId);
+    auto pA = areas.value(areaId);
     if (!pA) {
         qWarning() << "TRoomDB::setAreaRooms(" << areaId << ", ... ) ERROR - Non-existent area Id given...!";
         return;

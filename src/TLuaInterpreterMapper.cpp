@@ -683,7 +683,7 @@ int TLuaInterpreter::clearAreaUserData(lua_State* L)
     }
 
     const int areaId = getVerifiedInt(L, __func__, 1, "areaID");
-    TArea* pA = host.mpMap->mpRoomDB->getArea(areaId);
+    auto pA = host.mpMap->mpRoomDB->getArea(areaId);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(areaId));
     }
@@ -707,7 +707,7 @@ int TLuaInterpreter::clearAreaUserDataItem(lua_State* L)
 
     const int areaId = getVerifiedInt(L, __func__, 1, "areaID");
     const QString key = getVerifiedString(L, __func__, 2, "key");
-    TArea* pA = host.mpMap->mpRoomDB->getArea(areaId);
+    auto pA = host.mpMap->mpRoomDB->getArea(areaId);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(areaId));
     }
@@ -1228,7 +1228,7 @@ int TLuaInterpreter::getAllAreaUserData(lua_State* L)
 
     QStringList keys;
     QStringList values;
-    TArea* pA = host.mpMap->mpRoomDB->getArea(areaId);
+    auto pA = host.mpMap->mpRoomDB->getArea(areaId);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(areaId));
     }
@@ -1329,7 +1329,7 @@ int TLuaInterpreter::getAreaExits(lua_State* L)
     }
 
     const Host& host = getHostFromLua(L);
-    TArea* pA = host.mpMap->mpRoomDB->getArea(area);
+    auto pA = host.mpMap->mpRoomDB->getArea(area);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(area));
     }
@@ -1369,7 +1369,7 @@ int TLuaInterpreter::getAreaRooms(lua_State* L)
 {
     const int area = getVerifiedInt(L, __func__, 1, "areaID");
     const Host& host = getHostFromLua(L);
-    TArea* pA = host.mpMap->mpRoomDB->getArea(area);
+    auto pA = host.mpMap->mpRoomDB->getArea(area);
     if (!pA) {
         lua_pushnil(L);
         return 1;
@@ -1393,7 +1393,7 @@ int TLuaInterpreter::getAreaRooms1(lua_State* L)
 {
     const int area = getVerifiedInt(L, __func__, 1, "areaID");
     const Host& host = getHostFromLua(L);
-    TArea* pA = host.mpMap->mpRoomDB->getArea(area);
+    auto pA = host.mpMap->mpRoomDB->getArea(area);
     if (!pA) {
         lua_pushnil(L);
         return 1;
@@ -1463,7 +1463,7 @@ int TLuaInterpreter::getAreaUserData(lua_State* L)
     if (!host.mpMap || !host.mpMap->mpRoomDB) {
         return warnArgumentValue(L, __func__, "no map present or loaded");
     }
-    TArea* pA = host.mpMap->mpRoomDB->getArea(areaId);
+    auto pA = host.mpMap->mpRoomDB->getArea(areaId);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(areaId));
     }
@@ -1627,7 +1627,7 @@ int TLuaInterpreter::getGridMode(lua_State* L)
 
     const int id = getVerifiedInt(L, __func__, 1, "areaID");
 
-    TArea* area = host.mpMap->mpRoomDB->getArea(id);
+    auto area = host.mpMap->mpRoomDB->getArea(id);
     if (!area) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(id));
     } else {
@@ -2158,7 +2158,7 @@ int TLuaInterpreter::getRoomsByPosition(lua_State* L)
     const int z = getVerifiedInt(L, __func__, 4, "z");
 
     const Host& host = getHostFromLua(L);
-    TArea* pA = host.mpMap->mpRoomDB->getArea(area);
+    auto pA = host.mpMap->mpRoomDB->getArea(area);
     if (!pA) {
         lua_pushnil(L);
         return 1;
@@ -2945,7 +2945,7 @@ int TLuaInterpreter::searchAreaUserData(lua_State* L)
 
     lua_newtable(L);
 
-    QMapIterator<int, TArea*> itArea(host.mpMap->mpRoomDB->getAreaMap());
+    QMapIterator<int, std::shared_ptr<TArea>> itArea(host.mpMap->mpRoomDB->getAreaMap());
     // For best performance do the three different types of action in three
     // different branches each with a loop - rather than choosing a branch
     // within a loop for each room
@@ -3299,7 +3299,7 @@ int TLuaInterpreter::setAreaUserData(lua_State* L)
         return warnArgumentValue(L, __func__, "no map present or loaded");
     }
 
-    TArea* pA = host.mpMap->mpRoomDB->getArea(areaId);
+    auto pA = host.mpMap->mpRoomDB->getArea(areaId);
     if (!pA) {
         return warnArgumentValue(L, __func__, csmInvalidAreaID.arg(areaId));
     }
@@ -3485,7 +3485,7 @@ int TLuaInterpreter::setGridMode(lua_State* L)
     const int area = getVerifiedInt(L, __func__, 1, "areaID");
     const bool gridMode = getVerifiedBool(L, __func__, 2, "true/false");
     const Host& host = getHostFromLua(L);
-    TArea* pA = host.mpMap->mpRoomDB->getArea(area);
+    auto pA = host.mpMap->mpRoomDB->getArea(area);
     if (!pA) {
         lua_pushboolean(L, false);
         return 1;

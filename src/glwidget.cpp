@@ -307,7 +307,7 @@ void GLWidget::paintGL()
     px = static_cast<float>(ox); //mpMap->rooms[mpMap->mRoomId]->x);
     py = static_cast<float>(oy); //mpMap->rooms[mpMap->mRoomId]->y);
     pz = static_cast<float>(oz); //mpMap->rooms[mpMap->mRoomId]->z);
-    TArea* pArea = mpMap->mpRoomDB->getArea(mAID);
+    auto pArea = mpMap->mpRoomDB->getArea(mAID);
     if (!pArea) {
         return;
     }

@@ -300,8 +300,8 @@ void TRoom::setId(const int roomId)
 // alternative means to do them as a fault recovery
 bool TRoom::setArea(int areaID, bool deferAreaRecalculations)
 {
-    static QSet<TArea*> dirtyAreas;
-    TArea* pA = mpRoomDB->getArea(areaID);
+    static QSet<std::shared_ptr<TArea>> dirtyAreas;
+    auto pA = mpRoomDB->getArea(areaID);
     if (!pA) {
         // There is no TArea instance with that _areaID
         // So try and make it
@@ -315,7 +315,7 @@ bool TRoom::setArea(int areaID, bool deferAreaRecalculations)
     }
 
     //remove from the old area
-    TArea* pA2 = mpRoomDB->getArea(area);
+    auto pA2 = mpRoomDB->getArea(area);
     if (pA2) {
         pA2->removeRoom(id, deferAreaRecalculations);
         // Ah, all rooms in the OLD area that led to the room now become area
@@ -341,9 +341,9 @@ bool TRoom::setArea(int areaID, bool deferAreaRecalculations)
     pA->mIsDirty = true;
 
     if (!deferAreaRecalculations) {
-        QSetIterator<TArea*> itpArea = dirtyAreas;
+        QSetIterator<std::shared_ptr<TArea>> itpArea = dirtyAreas;
         while (itpArea.hasNext()) {
-            TArea* pArea = itpArea.next();
+            auto pArea = itpArea.next();
             pArea->clean();
         }
         dirtyAreas.clear();
@@ -576,7 +576,7 @@ void TRoom::setSpecialExit(const int to, const QString& cmd)
         mSpecialExits.remove(cmd);
     }
 
-    TArea* pA = mpRoomDB->getArea(area);
+    auto pA = mpRoomDB->getArea(area);
     if (pA) {
         pA->determineAreaExitsOfRoom(id);
         // This updates the (TArea *)->exits map even for exit REMOVALS
@@ -633,7 +633,7 @@ void TRoom::removeAllSpecialExitsToRoom(const int roomId)
     }
 
     if (exitFound) {
-        TArea* pA = mpRoomDB->getArea(area);
+        auto pA = mpRoomDB->getArea(area);
         if (pA) {
             pA->determineAreaExitsOfRoom(id);
         }
