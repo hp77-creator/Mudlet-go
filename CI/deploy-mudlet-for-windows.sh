@@ -192,20 +192,23 @@ else
   export JAVA_HOME="$(cygpath -u $JAVA_HOME_21_X64)"
   export PATH="$JAVA_HOME/bin:$PATH"
 
-  echo "=== Signing Mudlet and dll files ==="
-  if [[ "$PublicTestBuild" == "true" ]]; then
-    java.exe -jar $GITHUB_WORKSPACE/installers/windows/jsign-7.0-SNAPSHOT.jar --storetype TRUSTEDSIGNING \
-        --keystore eus.codesigning.azure.net \
-        --storepass ${AZURE_ACCESS_TOKEN} \
-        --alias Mudlet/Mudlet \
-        "$PACKAGE_DIR/Mudlet PTB.exe" "$PACKAGE_DIR/**/*.dll"
-
+  if [ -z "${AZURE_ACCESS_TOKEN}" ]; then
+      echo "=== Code signing skipped - no Azure token provided ==="
   else
-    java.exe -jar $GITHUB_WORKSPACE/installers/windows/jsign-7.0-SNAPSHOT.jar --storetype TRUSTEDSIGNING \
-      --keystore eus.codesigning.azure.net \
-      --storepass ${AZURE_ACCESS_TOKEN} \
-      --alias Mudlet/Mudlet \
-      "$PACKAGE_DIR/Mudlet.exe" "$PACKAGE_DIR/**/*.dll"
+      echo "=== Signing Mudlet and dll files ==="
+      if [[ "$PublicTestBuild" == "true" ]]; then
+          java.exe -jar $GITHUB_WORKSPACE/installers/windows/jsign-7.0-SNAPSHOT.jar --storetype TRUSTEDSIGNING \
+              --keystore eus.codesigning.azure.net \
+              --storepass ${AZURE_ACCESS_TOKEN} \
+              --alias Mudlet/Mudlet \
+              "$PACKAGE_DIR/Mudlet PTB.exe" "$PACKAGE_DIR/**/*.dll"
+      else
+          java.exe -jar $GITHUB_WORKSPACE/installers/windows/jsign-7.0-SNAPSHOT.jar --storetype TRUSTEDSIGNING \
+              --keystore eus.codesigning.azure.net \
+              --storepass ${AZURE_ACCESS_TOKEN} \
+              --alias Mudlet/Mudlet \
+              "$PACKAGE_DIR/Mudlet.exe" "$PACKAGE_DIR/**/*.dll"
+      fi
   fi
 
   echo "=== Installing Squirrel for Windows ==="
@@ -367,7 +370,7 @@ EOF
     current_timestamp=$(date "+%-d %-m %Y %-H %-M %-S")
     read -r day month year hour minute second <<< "$current_timestamp"
 
-    curl -X POST 'https://www.mudlet.org/download-add.php' \
+    curl --retry 5 -X POST 'https://www.mudlet.org/download-add.php' \
     -H "x-wp-download-token: ${X_WP_DOWNLOAD_TOKEN}" \
     -F "file_type=2" \
     -F "file_remote=$DEPLOY_URL" \
@@ -409,7 +412,12 @@ EOF
   echo "$Changelog"
 
   echo "=== Creating release in Dblsqd ==="
-  VersionString="${VERSION}"
+  if [[ "$PublicTestBuild" == "true" ]]; then
+    VersionString="${VERSION}${MUDLET_VERSION_BUILD}-${BUILD_COMMIT,,}"
+  else # release
+    VersionString="${VERSION}"
+  fi
+  
   echo "VersionString: $VersionString"
   export VersionString
 
