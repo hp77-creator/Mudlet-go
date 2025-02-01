@@ -31,6 +31,7 @@
 #include <memory>
 #include <QElapsedTimer>
 #include <QRegularExpression>
+#include <utility>
 #include "post_guard.h"
 
 const QString ROOM_UI_SHOWNAME = qsl("room.ui_showName");
@@ -39,8 +40,10 @@ const QString ROOM_UI_NAMEFONT = qsl("room.ui_nameFont");
 const QString ROOM_UI_NAMESIZE = qsl("room.ui_nameSize");
 
 std::shared_ptr<TRoomDB> TRoomDB::createTRoomDB(TMap* map) {
-    auto roomDB = std::shared_ptr<TRoomDB>(new TRoomDB(map));
-    roomDB->addArea(-1, map->getDefaultAreaName());
+    auto roomDB = std::make_shared<TRoomDB>(map);
+    if(roomDB) {
+        roomDB->addArea(-1, map->getDefaultAreaName());
+    }
     return roomDB;
 }
 
@@ -65,16 +68,21 @@ std::shared_ptr<TRoom> TRoomDB::getRoom(int id)
 bool TRoomDB::addRoom(int id)
 {
     if (!rooms.contains(id) && id > 0) {
-        try {
-            // Create a new TRoom with shared_ptr to this TRoomDB
+         try {
+            // Create room without shared_from_this() initially
             auto pRoom = std::make_shared<TRoom>(shared_from_this());
             rooms[id] = pRoom;
             pRoom->setId(id);
-            // there is no point in updating the entranceMap here, as the room has no exit information
             return true;
-        } catch (const std::bad_weak_ptr&) {
-            QString error = qsl("addRoom: TRoomDB shared_ptr not properly initialized for room id=%1").arg(id);
+        } catch (const std::bad_weak_ptr& e) {
+            QString error = qsl("[ ERROR ] - Failed to create room id=%1: TRoomDB not properly initialized").arg(id);
             mpMap->logError(error);
+            qWarning().noquote() << error;
+            return false;
+        } catch (const std::exception& e) {
+            QString error = qsl("[ ERROR ] - Failed to create room id=%1, error: %2").arg(id).arg(e.what());
+            mpMap->logError(error);
+            qWarning().noquote() << error;
             return false;
         }
     }
@@ -394,6 +402,24 @@ void TRoomDB::removeArea(std::shared_ptr<TArea> pA)
     }
 }
 
+void TRoomDB::removeArea(TArea* pA)
+{
+    std::shared_ptr<TArea> sharedPtr(pA);
+    if (!sharedPtr) {
+        qWarning() << "TRoomDB::removeArea(TArea *) Warning - attempt to remove an area with a NULL TArea pointer!";
+        return;
+    }
+
+    const int areaId = areas.key(sharedPtr, 0);
+    if (areaId == areas.key(sharedPtr, -1)) {
+        // By testing twice with different default keys to return if value NOT
+        // found, we can be certain we have an actual valid value
+        removeArea(areaId);
+    } else {
+        qWarning() << "TRoomDB::removeArea(TArea *) Warning - attempt to remove an area NOT in TRoomDB::areas!";
+    }
+}
+
 int TRoomDB::getAreaID(std::shared_ptr<TArea> pA)
 {
     return areas.key(pA);
@@ -413,7 +439,7 @@ void TRoomDB::buildAreas()
         }
         auto pA = getArea(pR->getArea());
         if (!pA) {
-            areas[pR->getArea()] = std::make_shared<TArea>(mpMap, shared_from_this());
+            areas[pR->getArea()] = TArea::create(mpMap, shared_from_this());
         }
     }
 
@@ -423,7 +449,7 @@ void TRoomDB::buildAreas()
         it2.next();
         const int id = it2.key();
         if (!areas.contains(id)) {
-            areas[id] = std::make_shared<TArea>(mpMap, shared_from_this());
+            areas[id] = TArea::create(mpMap, shared_from_this());
         }
     }
     qDebug() << "TRoomDB::buildAreas() run time:" << timer.nsecsElapsed() * 1.0e-9 << "sec.";
@@ -1117,6 +1143,7 @@ void TRoomDB::clearMapDB()
     // for (auto area : areaList) {
     //     delete area;
     // }
+    areas.clear();
     assert(areas.empty());
     // Must now reinsert areaId -1 name = "Default Area"
     addArea(-1, mpMap->getDefaultAreaName());
@@ -1268,11 +1295,14 @@ void TRoomDB::restoreAreaMap(QDataStream& ifs)
 void TRoomDB::restoreSingleArea(int areaID, std::shared_ptr<TArea> pA)
 {
     areas[areaID] = pA;
+    if (pA) {
+        pA->initializeAfterCreation();
+    }
 }
 
 void TRoomDB::restoreSingleRoom(int i,std::shared_ptr<TRoom> pT)
 {
-    addRoom(i, pT, true);
+    addRoom(i, std::move(pT), true);
 }
 
 // Used by XMLimport to fix TArea::rooms data after import

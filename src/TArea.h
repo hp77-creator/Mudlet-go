@@ -47,6 +47,9 @@ class TArea : public std::enable_shared_from_this<TArea>
     friend bool TMap::retrieveMapFileStats(QString, QString*, int*, int*, qsizetype*, qsizetype*);
 
 public:
+    void initializeAfterCreation() {
+        shared_from_this();
+    }
     static std::shared_ptr<TArea> create(TMap* map, std::shared_ptr<TRoomDB> roomDB){
         return std::shared_ptr<TArea>(new TArea(map, roomDB));
     }

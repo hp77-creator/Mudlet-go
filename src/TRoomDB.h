@@ -63,6 +63,7 @@ public:
     bool removeArea(int id);
     bool removeArea(const QString& name);
     void removeArea(std::shared_ptr<TArea>);
+    void removeArea(TArea*);
     bool addArea(int id);
     int addArea(QString name);
     bool addArea(int id, QString name);

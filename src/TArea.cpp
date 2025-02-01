@@ -58,11 +58,7 @@ TArea::TArea(TMap* pMap, std::shared_ptr<TRoomDB> pRDB)
 
 TArea::~TArea()
 {
-    if (mpRoomDB) {
-        mpRoomDB->removeArea(shared_from_this());
-    } else {
-        qDebug() << "ERROR: In TArea::~TArea(), instance has no mpRoomDB";
-    }
+    //nothing is required
 }
 
 int TArea::getAreaID()

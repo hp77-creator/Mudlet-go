@@ -1583,6 +1583,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
     QStringList entries;
 
     if (location.isEmpty()) {
+        qDebug().noquote().nospace() << "TMap::restore(\"" << location << "\") INFO: location is empty of Profile: \"" << mProfileName << "\" URL: " << mpHost->getUrl();
         folder = mudlet::getMudletPath(enums::profileMapsPath, mProfileName);
         const QDir dir(folder);
         QStringList filters;
@@ -1593,6 +1594,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
 
     bool canRestore = true;
     if (entries.empty() && location.isEmpty()) {
+        qDebug().noquote().nospace() << "TMap::restore(\"" << location << "\") INFO: canRestore is false of Profile: \"" << mProfileName << "\" URL: " << mpHost->getUrl();
         canRestore = false;
     }
 
@@ -1606,6 +1608,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
         bool foundValidFile = false;
         if (location.isEmpty()) {
             // Look through the entries:
+            qDebug().noquote().nospace() << "TMap::restore(\"" << location << "\") INFO: location.isEmpty() block is false of Profile: \"" << mProfileName << "\" URL: " << mpHost->getUrl();
             QStringListIterator itFileName(entries);
             auto fileName = qsl("%1/%2").arg(folder, itFileName.next());
             if (!fileName.endsWith(qsl(".json"), Qt::CaseInsensitive)) {
@@ -1650,7 +1653,9 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
     if (canRestore) {
         // As all but the room reading have version checks the fact that sub-4
         // files will still be parsed despite canRestore being false is probably OK
+        qDebug().noquote().nospace() << "TMap::restore(\"" << location << "\") INFO: inside canRestore block of Profile: \"" << mProfileName << "\" URL: " << mpHost->getUrl();
         if (mVersion >= 4) {
+            qDebug().noquote().nospace() << "TMap::restore(\"" << location << "\") INFO: inside mVersion >= 4 Profile: \"" << mProfileName << "\" URL: " << mpHost->getUrl();
             ifs >> mEnvColors;
             mpRoomDB->restoreAreaMap(ifs);
         }
@@ -1719,7 +1724,7 @@ bool TMap::restore(QString location, bool downloadIfNotFound)
             ifs >> areaSize;
             // restore area table
             for (int i = 0; i < areaSize; i++) {
-                auto pA = std::make_shared<TArea>(this, mpRoomDB);
+                auto pA = TArea::create(this, mpRoomDB);
                 int areaID = 0;
                 ifs >> areaID;
                 if (mVersion >= 18) {
