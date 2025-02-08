@@ -1067,6 +1067,8 @@ void XMLimport::readHost(Host* pHost)
                 pHost->mWrapAt = readElementText().toInt();
             } else if (name() == qsl("wrapIndentCount")) {
                 pHost->mWrapIndentCount = readElementText().toInt();
+            } else if (name() == qsl("wrapHangingIndentCount")) {
+                pHost->mWrapHangingIndentCount = readElementText().toInt();
             } else if (name() == qsl("mCommandSeparator")) {
                 pHost->mCommandSeparator = readElementText();
             } else if (name() == qsl("mCommandLineFgColor")) {
